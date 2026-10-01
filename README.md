@@ -99,3 +99,11 @@ Two false-death paths were corrected: placeholder tail cars created when a consi
 - Challenge placement becomes more dangerous as the consist grows: longer trains bias bonus zones toward older sections of the player's own tail, creating classic Snake-style loop-back risk without an arbitrary difficulty timer.
 - A food-magnet system detects pickup droughts and injects a catchable streetcar a few seconds ahead so long straightaways do not go dead.
 - Transit Control can issue DO NOT ENTER closures in addition to stalled-car and slow-order events. Closed track is drawn as a red dashed segment and excluded from automatic turnout routing.
+
+
+### Two-thumb mobile cockpit
+
+- Brake is pinned to the lower-left safe area and accelerator to the lower-right safe area for natural two-thumb play on iPhone.
+- Contextual LEFT / STRAIGHT / RIGHT switch choices occupy the bottom centre only while approaching special work.
+- Active ×2/×3 challenge zones show an off-screen directional arrow with distance.
+- Armed multipliers and pickup rewards render as floating badges beside the lead streetcar, including persistent `NEXT PICKUP ×2/×3` feedback.
