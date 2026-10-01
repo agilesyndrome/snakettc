@@ -3538,13 +3538,12 @@
   gameModeSelect.addEventListener("change", updateStartButton);
   operatorModeSelect.addEventListener("change", updateStartButton);
 
-  try {
-    muteSounds.checked = localStorage.getItem("snakettc-muted") === "1";
-  } catch (_) {}
+  // Sound is ON by default. Only an explicit first-party cookie opt-out
+  // should start a future visit muted.
+  muteSounds.checked = readCookie("ttcSnakeMuted") === "1";
   muteSounds.addEventListener("change", () => {
-    try {
-      localStorage.setItem("snakettc-muted", muteSounds.checked ? "1" : "0");
-    } catch (_) {}
+    document.cookie = "ttcSnakeMuted=" + (muteSounds.checked ? "1" : "0") +
+      "; Max-Age=31536000; Path=/; SameSite=Lax";
   });
 
   resumeCheckpoint = readResumeCheckpoint();
