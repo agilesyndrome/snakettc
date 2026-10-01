@@ -63,3 +63,8 @@ The app uses current Cloudflare Workers Static Assets with an `ASSETS` binding b
 - [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)
 
 This is an unofficial fan game and is not affiliated with or endorsed by the Toronto Transit Commission.
+
+
+### Opening pickup assist
+
+The first collectible is intentionally different from normal random spawns. It is placed about 6–8 seconds ahead along the player's current track path and is re-targeted if the player misses it by taking another switch. After roughly 22 seconds the assist becomes more aggressive, keeping the first coupling within the opening 30-second engagement window under normal driving. Transit Control disruptions are held until after that first pickup.
