@@ -485,7 +485,7 @@
   const NORMAL_GOVERNOR_KPH = 50;
   const FLEXITY_RATED_MAX_KPH = 70;
   const ROGUE_GAME_MAX_KPH = 140; // Deliberately fictional overdrive beyond 70 km/h.
-  const START_SPEED_KPH = 40;
+  const START_SPEED_KPH = 50;
   const PICKUP_COUNT = 8;
   const REF_LAT = 43.6500;
   const REF_LON = -79.3900;
@@ -903,7 +903,6 @@
   let head = null;
   let camera = { x: 0, y: 0, scale: 0.7 };
   let audioCtx = null;
-  let selectedMode = "free";
   let gameMode = "free";
   let operatorMode = "normal";
   let speedKph = START_SPEED_KPH;
@@ -914,6 +913,7 @@
   let chaos = null;
   let blockedEdgeId = null;
   let nextChaosAt = Infinity;
+  let lastLocationHudAt = 0;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1832,6 +1832,27 @@
     ctx.restore();
   }
 
+  function drawYouMarker(poses) {
+    if (!poses.length) return;
+    const lead = poses[0];
+    const p = worldToScreen(lead.x, lead.y);
+    const pulse = 13 + Math.sin(performance.now() / 170) * 2;
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(215,25,32,.78)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, pulse, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(16,17,20,.88)";
+    ctx.font = "900 8px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("YOU", p.x, p.y - pulse - 3);
+    ctx.restore();
+  }
+
   function drawFrame(poses) {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#f1eee5";
@@ -1847,6 +1868,7 @@
 
     // Draw tail first so the lead car remains visually dominant.
     for (let i = poses.length - 1; i >= 0; i--) drawStreetcar(poses[i], i, false);
+    drawYouMarker(poses);
 
     drawMinimap(poses);
   }
@@ -1868,6 +1890,7 @@
     // the selected speed; once cleared the car can accelerate again.
     const effective = chaos?.type === "slow" ? Math.min(speedKph, 25) : speedKph;
     speedStat.textContent = String(Math.round(effective));
+    speedStat.style.color = effective > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
     return effective;
   }
 
@@ -1883,6 +1906,10 @@
       addTrailSample();
       checkPickups();
       updateSwitchPanel();
+      if (t - lastLocationHudAt > 220) {
+        updateLocationHud();
+        lastLocationHudAt = t;
+      }
     }
 
     const poses = getTrainPoses();
