@@ -432,18 +432,6 @@
   .pedal:active, .pedal.active { transform: translateY(1px); }
   #accelerator.active { background: #087f5b; }
   #brake.active { background: #a61e24; }
-  #pauseBtn {
-    position: fixed;
-    z-index: 9;
-    right: max(14px, env(safe-area-inset-right));
-    top: 126px;
-    width: 42px;
-    min-height: 42px;
-    padding: 0;
-    border-radius: 50%;
-    font-size: 15px;
-  }
-
   #missionHud {
     grid-column: 1 / -1;
     display: none;
@@ -653,15 +641,6 @@
     #accelerator { right: max(10px, env(safe-area-inset-right)); }
     .pedal small { display: none; }
 
-    #pauseBtn {
-      top: calc(max(8px, env(safe-area-inset-top)) + 101px);
-      right: max(8px, env(safe-area-inset-right));
-      width: 34px;
-      min-height: 34px;
-      border-radius: 50%;
-      font-size: 11px;
-      background: rgba(12,14,17,.84);
-    }
 
     #switchPanel {
       left: 102px;
@@ -748,7 +727,6 @@
   <button id="brake" class="pedal" aria-label="Brake">BRAKE<small>hold • − key</small></button>
   <button id="accelerator" class="pedal" aria-label="Accelerator">ACCEL<small>hold • + key</small></button>
 </div>
-<button id="pauseBtn" class="pedal" aria-label="Pause">Ⅱ</button>
 
 <button id="aboutBtn">Map + sources</button>
 <div id="aboutPanel">
@@ -884,7 +862,6 @@
   const operatorModeSelect = document.getElementById("operatorModeSelect");
   const accelerator = document.getElementById("accelerator");
   const brake = document.getElementById("brake");
-  const pauseBtn = document.getElementById("pauseBtn");
   const muteSounds = document.getElementById("muteSounds");
 
   let dpr = 1;
@@ -1319,7 +1296,6 @@
   // -------------------------------------------------------------------------
 
   let running = false;
-  let paused = false;
   let dead = false;
   let lastT = 0;
   let trainCars = 1;
@@ -1853,7 +1829,7 @@
   }
 
   function maintainOpeningPickup(t) {
-    if (firstPickupCollected || !running || paused || dead) return;
+    if (firstPickupCollected || !running || dead) return;
 
     const elapsed = t - runStartedAt;
     const urgent = elapsed >= 22000;
@@ -1884,7 +1860,7 @@
   }
 
   function maintainPickupDensity(t) {
-    if (!firstPickupCollected || !running || paused || dead) return;
+    if (!firstPickupCollected || !running || dead) return;
 
     const desired = desiredPickupCount();
     while (pickups.length < desired) pickups.push(makePickup());
@@ -1974,7 +1950,7 @@
   }
 
   function updateChallengeZone(t) {
-    if (!firstPickupCollected || !running || paused || dead) return;
+    if (!firstPickupCollected || !running || dead) return;
 
     if (challengeZone && t >= challengeZone.expiresAt) {
       challengeZone = null;
@@ -2002,7 +1978,7 @@
   }
 
   function maintainFoodMagnet(t) {
-    if (!firstPickupCollected || !running || paused || dead) return;
+    if (!firstPickupCollected || !running || dead) return;
     const drought = t - lastPickupAt;
     if (drought < 12000) return;
 
@@ -2024,7 +2000,6 @@
     manualSwitchEdgeId = null;
     switchSignature = "";
     dead = false;
-    paused = false;
     trail = [];
     trailStart = 0;
     trailDistance = 0;
@@ -2089,7 +2064,6 @@
     manualSwitchEdgeId = null;
     switchSignature = "";
     dead = false;
-    paused = false;
     collisionFrames = 0;
     lastPickupAt = performance.now();
     challengeZone = null;
@@ -2212,10 +2186,6 @@
   }
 
   function queueDirection(dir) {
-    if (dir === "pause") {
-      togglePause();
-      return;
-    }
     queuedDirection = dir;
     manualSwitchEdgeId = null;
     const button = document.querySelector('[data-dir="' + dir + '"]');
@@ -2716,11 +2686,6 @@
     startBtn.textContent = "Begin new game";
   }
 
-  function togglePause() {
-    if (!running || dead) return;
-    paused = !paused;
-    tip.textContent = paused ? "Paused — Transit Control is pretending this is scheduled recovery time." : "Back in service.";
-  }
 
   // -------------------------------------------------------------------------
   // Camera + drawing
@@ -3409,7 +3374,7 @@
     const dt = Math.min(0.05, (t - lastT) / 1000);
     lastT = t;
 
-    if (running && !paused && !dead) {
+    if (running && !dead) {
       maintainOpeningPickup(t);
       maintainPickupDensity(t);
       maintainFoodMagnet(t);
@@ -3437,7 +3402,7 @@
     }
 
     const poses = getTrainPoses();
-    if (running && !paused && !dead && checkSelfCollision(poses)) gameOver();
+    if (running && !dead && checkSelfCollision(poses)) gameOver();
     updateCamera(poses);
     drawFrame(poses);
     requestAnimationFrame(frame);
@@ -3541,9 +3506,6 @@
       event.preventDefault();
       brakeHeld = true;
       brake.classList.add("active");
-    } else if (key === " " || key === "p") {
-      event.preventDefault();
-      togglePause();
     }
   }, { passive: false });
 
@@ -3565,10 +3527,6 @@
     selectSwitchBranch(button.dataset.edge);
   });
 
-  pauseBtn.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    togglePause();
-  });
 
   function updateStartButton() {
     const label = gameModeSelect.value === "mission" ? "Route Mission" : "Free Play";
