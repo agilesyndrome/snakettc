@@ -91,3 +91,11 @@ Every successful streetcar coupling writes a compact 30-day first-party cookie c
 ### Self-collision fixes
 
 Two false-death paths were corrected: placeholder tail cars created when a consist grows faster than its stored trail are excluded from collision detection, and very high-speed movement is sampled in 3.5 m substeps so stored trail geometry follows bends instead of cutting diagonal chords across junctions. Collision also requires contact across two consecutive rendered frames to reject one-frame interpolation noise.
+
+
+### Multiplier challenge zones and tail pressure
+
+- Glowing ×2 zones arm a double pickup; rarer ×3 zones arm a triple pickup.
+- Challenge placement becomes more dangerous as the consist grows: longer trains bias bonus zones toward older sections of the player's own tail, creating classic Snake-style loop-back risk without an arbitrary difficulty timer.
+- A food-magnet system detects pickup droughts and injects a catchable streetcar a few seconds ahead so long straightaways do not go dead.
+- Transit Control can issue DO NOT ENTER closures in addition to stalled-car and slow-order events. Closed track is drawn as a red dashed segment and excluded from automatic turnout routing.
