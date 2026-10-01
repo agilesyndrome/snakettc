@@ -111,35 +111,6 @@
     pointer-events: none;
   }
 
-  #dpad {
-    position: fixed;
-    z-index: 8;
-    right: max(14px, env(safe-area-inset-right));
-    bottom: max(14px, env(safe-area-inset-bottom));
-    width: 174px;
-    height: 174px;
-    display: grid;
-    grid-template: repeat(3, 54px) / repeat(3, 54px);
-    gap: 6px;
-  }
-
-  .control {
-    appearance: none;
-    border: 1px solid rgba(255,255,255,.24);
-    border-radius: 16px;
-    background: rgba(12,14,17,.84);
-    color: white;
-    box-shadow: 0 5px 16px rgba(0,0,0,.22);
-    font: 900 24px/1 system-ui, sans-serif;
-    touch-action: manipulation;
-  }
-  .control:active, .control.active { transform: translateY(1px) scale(.97); background: var(--ttc-red); }
-  .up { grid-area: 1 / 2; }
-  .left { grid-area: 2 / 1; }
-  .pause { grid-area: 2 / 2; font-size: 16px; }
-  .right { grid-area: 2 / 3; }
-  .down { grid-area: 3 / 2; }
-
   #aboutBtn {
     position: fixed;
     z-index: 8;
@@ -235,6 +206,20 @@
     color: #fff;
     font: 800 13px system-ui, sans-serif;
   }
+  .sound-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    color: #d7dbe1;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .sound-option input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--ttc-red);
+  }
 
   #locationHud {
     grid-column: 1 / -1;
@@ -255,7 +240,7 @@
     left: max(14px, env(safe-area-inset-left));
     bottom: calc(max(14px, env(safe-area-inset-bottom)) + 46px);
     display: grid;
-    grid-template-columns: 92px 92px;
+    grid-template-columns: 92px 48px 92px;
     gap: 8px;
   }
   .pedal {
@@ -272,6 +257,7 @@
   .pedal:active, .pedal.active { transform: translateY(1px); }
   #accelerator.active { background: #087f5b; }
   #brake.active { background: #a61e24; }
+  #pauseBtn { font-size: 17px; padding: 0; }
 
   #missionHud {
     grid-column: 1 / -1;
@@ -355,7 +341,6 @@
     .stat { min-width: 0; padding: 6px 9px; }
     .stat b { font-size: 16px; }
     #minimap { width: 150px; height: 88px; min-width: 0; min-height: 0; }
-    #dpad { transform: scale(.90); transform-origin: bottom right; }
     #switchPanel { width: min(330px, calc(100vw - 190px)); }
   }
 
@@ -461,29 +446,15 @@
     }
     #eventBanner[hidden] { display: none; }
 
-    #dpad {
-      right: max(10px, env(safe-area-inset-right));
-      bottom: max(10px, env(safe-area-inset-bottom));
-      width: 140px;
-      height: 140px;
-      grid-template: repeat(3, 44px) / repeat(3, 44px);
-      gap: 4px;
-      transform: none;
-    }
-    .control {
-      border-radius: 13px;
-      font-size: 21px;
-    }
-    .pause { font-size: 13px; }
-
     #speedControls {
-      left: max(10px, env(safe-area-inset-left));
+      left: 50%;
       bottom: max(10px, env(safe-area-inset-bottom));
-      grid-template-columns: 64px 64px;
+      transform: translateX(-50%);
+      grid-template-columns: 68px 44px 68px;
       gap: 6px;
     }
     .pedal {
-      width: 64px;
+      width: auto;
       min-height: 52px;
       padding: 4px;
       border-radius: 13px;
@@ -494,7 +465,7 @@
     #switchPanel {
       left: 8px;
       right: 8px;
-      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 150px);
+      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 68px);
       width: auto;
       padding: 6px;
       transform: none;
@@ -535,7 +506,7 @@
   <div class="stat stat-length"><b id="lengthStat">30 m</b><span>length</span></div>
   <div class="stat stat-speed"><b id="speedStat">90</b><span>km/h</span></div>
   <div id="locationHud"><strong>YOU ARE NEAR:</strong> finding the rails…</div>
-  <div class="tip" id="tip">Arrow keys / WASD steer. Q / E / R throw switches. Hold + to accelerate, − to brake. Space or P pauses.</div>
+  <div class="tip" id="tip">At special work use the switch buttons or Q / R / E for left / straight / right. Hold + to accelerate, − to brake. Space or P pauses.</div>
   <div id="missionHud" aria-live="polite">
     <div id="missionRoute">501</div>
     <div id="missionText"><b>Route mission</b><span>Destination</span></div>
@@ -550,17 +521,10 @@
   <div id="switchChoices"></div>
 </div>
 
-<div id="speedControls" aria-label="Speed controls">
+<div id="speedControls" aria-label="Driving controls">
   <button id="brake" class="pedal" aria-label="Brake">BRAKE<small>hold • − key</small></button>
+  <button id="pauseBtn" class="pedal" aria-label="Pause">Ⅱ</button>
   <button id="accelerator" class="pedal" aria-label="Accelerator">ACCEL<small>hold • + key</small></button>
-</div>
-
-<div id="dpad" aria-label="Touch controls">
-  <button class="control up" data-dir="up" aria-label="North">↑</button>
-  <button class="control left" data-dir="left" aria-label="West">←</button>
-  <button class="control pause" data-dir="pause" aria-label="Pause">Ⅱ</button>
-  <button class="control right" data-dir="right" aria-label="East">→</button>
-  <button class="control down" data-dir="down" aria-label="South">↓</button>
 </div>
 
 <button id="aboutBtn">Map + sources</button>
@@ -570,6 +534,7 @@
   <p><strong>Vehicle scale:</strong> TTC's Flexity low-floor streetcar is 30.20 m long and 2.54 m wide. Length is drawn at true world scale. Width gets a tiny minimum on small screens so your streetcar does not become avant-garde pixel art.</p>
   <p><strong>2026 anchors:</strong> 501, 503, 504, 505, 506, 507/508, 509, 510, 511 and 512 corridors; Long Branch, Humber, Gunns, High Park, Dufferin Gate, Exhibition, Distillery, Bingham and Neville Park loops; Union, Spadina, Bathurst, Broadview, Dundas West and Main Street stations.</p>
   <p><strong>Carhouses:</strong> Roncesvalles, Russell and Leslie Barns are playable. Harvey Shop/Hillcrest is included as a maintenance spur.</p>
+  <p><strong>Route continuity:</strong> if you do not throw a switch, the game now strongly prefers staying on the same TTC route/corridor. Cross-corridor special work remains playable when you deliberately select it. The 506 genuinely uses Dundas Street West between Howard Park and College; that Dundas → College transition is intentional.</p>
   <p>Official references:<br>
     <a href="https://cdn.ttc.ca/-/media/Project/TTC/DevProto/Images/Home/Routes-and-Schedules/Landing-page-pdfs/TTC_SubwayStreetcarLightrailMap.pdf" target="_blank" rel="noreferrer">TTC Subway, Light Rail and Streetcar Map — June 2026</a><br>
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
@@ -586,6 +551,7 @@
     <p>Collect glowing Flexitys. Your first one is dispatched onto the track ahead so the run gets moving immediately; later cars spread across the network. Every pickup adds another full 30.20 m streetcar to your train.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
     <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 999 km/h because apparently the rails are merely a suggestion.</p>
+    <p>On touch devices: brake/accelerate at the bottom, then use the contextual <strong>LEFT / STRAIGHT / RIGHT</strong> switch buttons when special work approaches.</p>
     <div class="mode-picker">
       <div class="mode-field">
         <label for="gameModeSelect">Game mode</label>
@@ -603,6 +569,7 @@
         </select>
       </div>
     </div>
+    <label class="sound-option"><input id="muteSounds" type="checkbox" /> Mute sounds</label>
     <button id="startBtn">Depart: Free Play</button>
   </div>
 </div>
@@ -665,6 +632,8 @@
   const operatorModeSelect = document.getElementById("operatorModeSelect");
   const accelerator = document.getElementById("accelerator");
   const brake = document.getElementById("brake");
+  const pauseBtn = document.getElementById("pauseBtn");
+  const muteSounds = document.getElementById("muteSounds");
 
   let dpr = 1;
   let W = 0;
@@ -1064,6 +1033,7 @@
   let firstPickupCollected = false;
   let runStartedAt = 0;
   let openingAssistPlacedAt = 0;
+  let lastPacePickupAt = 0;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1178,6 +1148,7 @@
 
   function ringBell() {
     // A short synthetic bell keeps the game dependency-free and works offline.
+    if (muteSounds.checked) return;
     try {
       audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
       const now = audioCtx.currentTime;
@@ -1203,6 +1174,70 @@
     }
   }
 
+  function pickupChime() {
+    // An original transit-esque three-note acknowledgement, not a sampled TTC sound.
+    if (muteSounds.checked) return;
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const notes = [
+        { f: 659.25, at: 0.00, dur: 0.12 },
+        { f: 987.77, at: 0.11, dur: 0.13 },
+        { f: 783.99, at: 0.24, dur: 0.18 },
+      ];
+
+      for (const note of notes) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(note.f, now + note.at);
+        gain.gain.setValueAtTime(0.0001, now + note.at);
+        gain.gain.exponentialRampToValueAtTime(0.095, now + note.at + 0.012);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + note.at + note.dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + note.at);
+        osc.stop(now + note.at + note.dur + 0.02);
+      }
+    } catch (_) {
+      // Sound is optional; gameplay must survive browser audio restrictions.
+    }
+  }
+
+  function routeKeys(edge) {
+    const keys = new Set();
+    for (const tag of edge.tags) {
+      const match = String(tag).match(/^(\d+)([A-Z])?$/);
+      if (!match) continue;
+      keys.add(match[0]);
+      keys.add(match[1]);
+    }
+    return keys;
+  }
+
+  function routeContinuityBonus(currentEdge, candidate) {
+    if (!currentEdge || !candidate || currentEdge === candidate) return 0;
+    const current = routeKeys(currentEdge);
+    const next = routeKeys(candidate);
+    let shared = 0;
+    for (const key of current) if (next.has(key)) shared++;
+
+    let bonus = Math.min(5.5, shared * 2.4);
+    if (candidate.tags.includes("yard")) bonus -= 3.5;
+    if ((candidate.tags.includes("diversion") || candidate.tags.includes("track")) &&
+        !currentEdge.tags.includes("diversion") && !currentEdge.tags.includes("track")) {
+      bonus -= 1.2;
+    }
+
+    // Route Missions get an extra nudge toward the assigned route when the
+    // player has not explicitly thrown the turnout.
+    if (currentMission) {
+      const missionBase = currentMission.def.route.match(/^\d+/)?.[0];
+      if (candidate.tags.some((tag) => String(tag).startsWith(missionBase))) bonus += 1.4;
+    }
+    return bonus;
+  }
+
   function previewNextEdge(nodeId, currentEdge, headingX, headingY) {
     let candidates = (adjacency.get(nodeId) || []).filter((edge) => edge.id !== blockedEdgeId);
     if (!candidates.length) return null;
@@ -1225,8 +1260,11 @@
       const out = outgoingVector(edge, nodeId);
       let value = out.x * target.x + out.y * target.y;
 
+      // Without an explicit steering request, stay on the same TTC corridor.
+      if (!queuedDirection) value += routeContinuityBonus(currentEdge, edge);
+
       // Avoid tracing backwards unless a terminal leaves no other option.
-      if (edge === currentEdge && candidates.length > 1) value -= 1.4;
+      if (edge === currentEdge && candidates.length > 1) value -= 3.0;
       if (value > score) {
         score = value;
         choice = { edge, dir: out.dir, vec: out };
@@ -1304,6 +1342,41 @@
     }
   }
 
+  function desiredPickupCount() {
+    // Faster play needs a denser world. Cap it so Airplane Mode does not turn
+    // the canvas into a Flexity particle accelerator.
+    return Math.max(PICKUP_COUNT, Math.min(32, 9 + Math.floor(speedKph / 42)));
+  }
+
+  function makePacePickup() {
+    const metresPerSecond = Math.max(12, speedKph / 3.6);
+    const secondsAhead = operatorMode === "rogue" ? 2.6 : 4.2;
+    const distance = Math.max(120, Math.min(780, metresPerSecond * secondsAhead));
+    return { ...pointAheadOfHead(distance), pace: true };
+  }
+
+  function maintainPickupDensity(t) {
+    if (!firstPickupCollected || !running || paused || dead) return;
+
+    const desired = desiredPickupCount();
+    while (pickups.length < desired) pickups.push(makePickup());
+
+    // Long straightaways always get something to chase. Re-target this single
+    // pace car periodically so it follows the route the player actually takes.
+    const interval = Math.max(1400, 5200 - speedKph * 4.0);
+    if (t - lastPacePickupAt >= interval) {
+      pickups = pickups.filter((pickup) => !pickup.pace);
+      pickups.unshift(makePacePickup());
+      lastPacePickupAt = t;
+
+      while (pickups.length > desired) {
+        const removeIndex = pickups.findLastIndex((pickup) => !pickup.pace && !pickup.assisted);
+        if (removeIndex < 0) break;
+        pickups.splice(removeIndex, 1);
+      }
+    }
+  }
+
   function resetGame() {
     trainCars = 1;
     queuedDirection = null;
@@ -1318,6 +1391,7 @@
     firstPickupCollected = false;
     runStartedAt = 0;
     openingAssistPlacedAt = 0;
+    lastPacePickupAt = 0;
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
     speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
@@ -1435,11 +1509,13 @@
       const out = outgoingVector(edge, nodeId);
       let score = out.x * target.x + out.y * target.y;
 
-      // Without a queued turn, favour continuing forward instead of reversing.
-      if (!queuedDirection && edge === currentEdge) score -= 1.25;
+      // No switch command means "stay on this service/corridor" first, geometry
+      // second. This prevents accidental Dundas→Queen or similar turns.
+      if (!queuedDirection) score += routeContinuityBonus(currentEdge, edge);
 
-      // With an explicit direction, allow U-turns but make a matching branch win.
-      if (queuedDirection && edge === currentEdge) score -= 0.15;
+      // Taking the same edge from the node is a U-turn.
+      if (!queuedDirection && edge === currentEdge) score -= 3.0;
+      if (queuedDirection && edge === currentEdge) score -= 0.4;
 
       if (score > bestScore) {
         bestScore = score;
@@ -1455,7 +1531,8 @@
     if (!head) return null;
     const towardEnd = head.dir > 0;
     const distance = towardEnd ? head.edge.len - head.s : head.s;
-    if (distance > 230) return null;
+    const lookahead = Math.max(230, Math.min(1400, (speedKph / 3.6) * 4.5));
+    if (distance > lookahead) return null;
 
     const nodeId = towardEnd ? head.edge.b : head.edge.a;
     let candidates = (adjacency.get(nodeId) || []).filter((edge) => edge !== head.edge);
@@ -1634,8 +1711,8 @@
           nextChaosAt = performance.now() + 20000 + Math.random() * 18000;
         }
 
-        while (pickups.length < PICKUP_COUNT) pickups.push(makePickup());
-        ringBell();
+        while (pickups.length < desiredPickupCount()) pickups.push(makePickup());
+        pickupChime();
         saveBest();
         updateHud();
         tip.textContent = trainCars >= 40
@@ -1982,8 +2059,12 @@
       const pulse = 1 + Math.sin(performance.now() / 180 + pickup.x * .001) * .12;
       const p = worldToScreen(pickup.x, pickup.y);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, (pickup.assisted ? 15 : 11) * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = pickup.assisted ? "rgba(255,221,87,.72)" : "rgba(255,255,255,.74)";
+      ctx.arc(p.x, p.y, (pickup.assisted ? 15 : pickup.pace ? 13 : 11) * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = pickup.assisted
+        ? "rgba(255,221,87,.72)"
+        : pickup.pace
+          ? "rgba(125,211,252,.70)"
+          : "rgba(255,255,255,.74)";
       ctx.fill();
       drawStreetcar(pickup, -1, true);
     }
@@ -2196,6 +2277,7 @@
 
     if (running && !paused && !dead) {
       maintainOpeningPickup(t);
+      maintainPickupDensity(t);
       updateChaos(t);
       const effectiveKph = updateSpeed(dt);
       advanceHead((effectiveKph / 3.6) * dt);
@@ -2271,25 +2353,9 @@
     selectSwitchBranch(button.dataset.edge);
   });
 
-  document.querySelectorAll(".control").forEach((button) => {
-    button.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      queueDirection(button.dataset.dir);
-    });
-  });
-
-  let swipeStart = null;
-  canvas.addEventListener("pointerdown", (event) => {
-    swipeStart = { x: event.clientX, y: event.clientY };
-  });
-  canvas.addEventListener("pointerup", (event) => {
-    if (!swipeStart) return;
-    const dx = event.clientX - swipeStart.x;
-    const dy = event.clientY - swipeStart.y;
-    swipeStart = null;
-    if (Math.hypot(dx, dy) < 24) return;
-    if (Math.abs(dx) > Math.abs(dy)) queueDirection(dx > 0 ? "right" : "left");
-    else queueDirection(dy > 0 ? "down" : "up");
+  pauseBtn.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    togglePause();
   });
 
   function updateStartButton() {
@@ -2303,6 +2369,16 @@
   }
   gameModeSelect.addEventListener("change", updateStartButton);
   operatorModeSelect.addEventListener("change", updateStartButton);
+
+  try {
+    muteSounds.checked = localStorage.getItem("snakettc-muted") === "1";
+  } catch (_) {}
+  muteSounds.addEventListener("change", () => {
+    try {
+      localStorage.setItem("snakettc-muted", muteSounds.checked ? "1" : "0");
+    } catch (_) {}
+  });
+
   updateStartButton();
 
   function setPedal(button, kind, pressed) {
