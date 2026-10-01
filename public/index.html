@@ -740,7 +740,7 @@
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
-  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 2000 km/h. At that point Transit Control has no jurisdiction over your soul.</p>
+  <p><strong>Speed:</strong> Arcade is the default: 180 km/h departure speed with intentionally fictional overdrive up to 2000 km/h. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -778,9 +778,8 @@
       <div class="mode-field">
         <label for="operatorModeSelect">Driving feel</label>
         <select id="operatorModeSelect">
-          <option value="arcade" selected>Arcade — fast &amp; fun (120 km/h cap)</option>
+          <option value="arcade" selected>Arcade — 2000 km/h, absolutely unwell</option>
           <option value="realistic">Realistic / Purist — 50 km/h cap</option>
-          <option value="rogue">Airplane Mode — 2000 km/h, absolutely unwell</option>
         </select>
       </div>
     </div>
@@ -807,13 +806,11 @@
   const COUPLER_GAP_M = 1.50;
   const CAR_SPACING_M = CAR_LENGTH_M + COUPLER_GAP_M;
   const REALISTIC_GOVERNOR_KPH = 50;
-  const ARCADE_GOVERNOR_KPH = 120;
+  const ARCADE_GOVERNOR_KPH = 2000; // Arcade: geography is now optional.
   const FLEXITY_RATED_MAX_KPH = 70;
-  const ROGUE_GAME_MAX_KPH = 2000; // Airplane Mode: geography is now optional.
   const MODE_START_SPEED_KPH = {
     realistic: 50,
-    arcade: 90,
-    rogue: 180,
+    arcade: 180,
   };
   const PICKUP_COUNT = 8;
   const OPENING_PICKUP_SECONDS_AHEAD = 6.5;
@@ -1687,14 +1684,14 @@
   }
 
   function desiredPickupCount() {
-    // Faster play needs a denser world. Cap it so Airplane Mode does not turn
+    // Faster play needs a denser world. Cap it so Arcade does not turn
     // the canvas into a Flexity particle accelerator.
     return Math.max(PICKUP_COUNT, Math.min(32, 9 + Math.floor(speedKph / 42)));
   }
 
   function makePacePickup() {
     const metresPerSecond = Math.max(12, speedKph / 3.6);
-    const secondsAhead = operatorMode === "rogue" ? 2.6 : 4.2;
+    const secondsAhead = operatorMode === "arcade" ? 2.6 : 4.2;
     const distance = Math.max(120, Math.min(780, metresPerSecond * secondsAhead));
     return { ...pointAheadOfHead(distance), pace: true };
   }
@@ -1917,9 +1914,8 @@
 
     trainCars = Math.max(2, Number(checkpoint.c) || 2);
     gameMode = checkpoint.gm === "mission" ? "mission" : "free";
-    operatorMode = ["realistic", "arcade", "rogue"].includes(checkpoint.om)
-      ? checkpoint.om
-      : "arcade";
+    // Old Airplane checkpoints migrate forward into the new Arcade mode.
+    operatorMode = checkpoint.om === "realistic" ? "realistic" : "arcade";
 
     gameModeSelect.value = gameMode;
     operatorModeSelect.value = operatorMode;
@@ -3077,19 +3073,17 @@
 
   function speedCapKph() {
     if (operatorMode === "realistic") return REALISTIC_GOVERNOR_KPH;
-    if (operatorMode === "rogue") return ROGUE_GAME_MAX_KPH;
     return ARCADE_GOVERNOR_KPH;
   }
 
   function slowOrderCapKph() {
     if (operatorMode === "realistic") return 25;
-    if (operatorMode === "rogue") return 250;
-    return 60;
+    return 250;
   }
 
   function updateSpeed(dt) {
-    const accelRate = operatorMode === "realistic" ? 34 : operatorMode === "rogue" ? 360 : 75;
-    const brakeRate = operatorMode === "realistic" ? 58 : operatorMode === "rogue" ? 420 : 110;
+    const accelRate = operatorMode === "realistic" ? 34 : 360;
+    const brakeRate = operatorMode === "realistic" ? 58 : 420;
     if (acceleratorHeld) speedKph += accelRate * dt;
     if (brakeHeld) speedKph -= brakeRate * dt;
     speedKph = Math.max(0, Math.min(speedCapKph(), speedKph));
@@ -3211,9 +3205,7 @@
     const label = gameModeSelect.value === "mission" ? "Route Mission" : "Free Play";
     const feel = operatorModeSelect.value === "realistic"
       ? " • Realistic"
-      : operatorModeSelect.value === "rogue"
-        ? " • Airplane"
-        : " • Arcade";
+      : " • Arcade";
     startBtn.textContent = "Begin new game — " + label + feel;
   }
   gameModeSelect.addEventListener("change", updateStartButton);
