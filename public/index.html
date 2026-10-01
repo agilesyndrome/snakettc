@@ -2589,7 +2589,21 @@
   function drawWater() {
     // Approximate shoreline only; this is decorative geographic context.
     const shoreGeo = [
-      [43.595, -79.550], [43.637, -79.493], [43.632, -79.445],
+      // West end / Humber Bay. Keep the decorative shoreline south of the
+      // Lake Shore streetcar corridor instead of cutting a giant diagonal
+      // from Long Branch to Humber Loop.
+      [43.584, -79.550],
+      [43.589, -79.535],
+      [43.597, -79.520],
+      [43.607, -79.505],
+      [43.618, -79.496],
+      [43.626, -79.491],
+      [43.628, -79.480],
+      [43.629, -79.465],
+      [43.631, -79.450],
+      [43.632, -79.445],
+
+      // Central/east waterfront remains intentionally approximate.
       [43.633, -79.420], [43.635, -79.400], [43.639, -79.382],
       [43.645, -79.360], [43.652, -79.330], [43.660, -79.300],
       [43.665, -79.275],
