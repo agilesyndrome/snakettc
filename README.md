@@ -82,3 +82,12 @@ The first collectible is intentionally different from normal random spawns. It i
 ### Road-name markers
 
 The playfield now uses small map-style street-name plaques for major corridors and selected cross streets, with density reduced automatically when zoomed out. This keeps geographic orientation visible without turning the phone screen back into HUD soup.
+
+
+### Resume checkpoints
+
+Every successful streetcar coupling writes a compact 30-day first-party cookie checkpoint containing the consist count, track position/direction, speed mode, mission state, and a compact approximation of the visible train shape. On a later visit the start screen shows a `Resume — N streetcars` button only when a valid unfinished checkpoint exists. Starting a new game clears the old checkpoint, and any self-collision/death deletes it so a dead run cannot be resumed.
+
+### Self-collision fixes
+
+Two false-death paths were corrected: placeholder tail cars created when a consist grows faster than its stored trail are excluded from collision detection, and very high-speed movement is sampled in 3.5 m substeps so stored trail geometry follows bends instead of cutting diagonal chords across junctions. Collision also requires contact across two consecutive rendered frames to reject one-frame interpolation noise.
