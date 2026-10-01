@@ -12,7 +12,7 @@ Choose **Free Play** or **Route Missions** before departing.
 - **Keyboard steering:** Arrow keys or WASD.
 - **Manual switch control:** Q = left turnout, E = right turnout, R = straight. An approaching-junction panel also lets you throw the switch directly.
 - **Mobile:** on-screen direction pad or swipe to steer; tap the turnout choices when a switch is approaching.
-- **Driving feel:** Arcade is the default, starting at 90 km/h with a 120 km/h game cap. Realistic / Purist starts at and is governed to 50 km/h. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 999 km/h.
+- **Driving feel:** Arcade is the default, starting at 90 km/h with a 120 km/h game cap. Realistic / Purist starts at and is governed to 50 km/h. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 2000 km/h.
 - **Speed controls:** hold the on-screen accelerator/brake pedals, or use `+` and `-`. The real Flexity rating of 70 km/h remains the realism boundary shown in the HUD.
 - **Mobile cockpit:** phones use a compact three-stat HUD, small labeled minimap, one-line location display, smaller D-pad, and thumb-friendly brake/accelerator controls instead of the desktop stack.
 - **Pause:** Space, P, or the centre touch button.
@@ -77,3 +77,8 @@ The first collectible is intentionally different from normal random spawns. It i
 - With no explicit turnout selection, junction routing strongly prefers the same TTC route/corridor and avoids yard or special-work branches. Manual turnout selection still overrides this.
 - Speed-aware pickup density increases the number of collectible streetcars as velocity rises. After the opening pickup, one "pace" streetcar is periodically placed ahead on the player's current path to keep long straightaways active.
 - Collecting a streetcar plays an original synthesized transit-style three-note chime. A persistent "Mute sounds" checkbox is available on the start screen.
+
+
+### Road-name markers
+
+The playfield now uses small map-style street-name plaques for major corridors and selected cross streets, with density reduced automatically when zoomed out. This keeps geographic orientation visible without turning the phone screen back into HUD soup.
