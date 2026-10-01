@@ -2425,6 +2425,11 @@
       head.s = next.dir > 0 ? 0 : next.edge.len;
       head.headingX = next.vec.x;
       head.headingY = next.vec.y;
+
+      if (chaos?.type === "doNotEnter" && head.edge.id === blockedEdgeId) {
+        gameOver("doNotEnter");
+        return;
+      }
     }
   }
 
@@ -2669,7 +2674,7 @@
     }
   }
 
-  function gameOver() {
+  function gameOver(reason = "selfCollision") {
     dead = true;
     running = false;
     chaos = null;
@@ -2679,15 +2684,19 @@
     clearResumeCheckpoint();
     updateHud();
     overlay.classList.remove("hidden");
-    overlayTitle.textContent = "Service suspended";
-    overlayLead.innerHTML = "You built a <strong>" + trainCars + "-car</strong> monster.<small>" +
-      Math.round(totalTrainLength()) + " m of streetcar before it ate itself.</small>";
+    overlayTitle.textContent = reason === "doNotEnter" ? "Absolutely not." : "Service suspended";
+    overlayLead.innerHTML = reason === "doNotEnter"
+      ? "You entered a <strong>DO NOT ENTER</strong> section.<small>Transit Control has removed you from service with unusual efficiency.</small>"
+      : "You built a <strong>" + trainCars + "-car</strong> monster.<small>" +
+        Math.round(totalTrainLength()) + " m of streetcar before it ate itself.</small>";
     overlayHero.style.display = "flex";
     overlayRules.style.display = "none";
     overlayStatus.hidden = false;
     overlayStatus.textContent = "High score: " + best + " joined streetcars.";
     overlayExtra.hidden = true;
-    overlayJoke.textContent = "🚧 Please stand by while Transit Control invents an explanation.";
+    overlayJoke.textContent = reason === "doNotEnter"
+      ? "⛔ The sign was, in fairness, fairly specific."
+      : "🚧 Please stand by while Transit Control invents an explanation.";
     startBtn.textContent = "Begin new game";
   }
 
