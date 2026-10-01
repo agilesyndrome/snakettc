@@ -582,6 +582,7 @@
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
     <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 2000 km/h because apparently Toronto has an aviation corridor now.</p>
     <p>On touch devices: brake/accelerate at the bottom, then use the contextual <strong>LEFT / STRAIGHT / RIGHT</strong> switch buttons when special work approaches.</p>
+    <p><strong>Snake pressure:</strong> chase ×2/rare ×3 zones to multiply your next pickup. As your train grows, those bonus zones increasingly appear near your own tail. Track closures and food magnets keep the route moving.</p>
     <div class="mode-picker">
       <div class="mode-field">
         <label for="gameModeSelect">Game mode</label>
@@ -1095,6 +1096,10 @@
   let lastPacePickupAt = 0;
   let collisionFrames = 0;
   let resumeCheckpoint = null;
+  let lastPickupAt = 0;
+  let challengeZone = null;
+  let nextChallengeAt = Infinity;
+  let pickupMultiplier = 1;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1523,6 +1528,108 @@
     }
   }
 
+  function tailPressure() {
+    // 0..1 based purely on earned train length. The game gets harder because
+    // the snake gets longer, not because an invisible clock says so.
+    return Math.max(0, Math.min(1, (trainCars - 8) / 32));
+  }
+
+  function distanceToPlacedTail(x, y) {
+    const poses = getTrainPoses();
+    let best = Infinity;
+    for (let i = 5; i < poses.length; i++) {
+      const pose = poses[i];
+      if (pose.placed === false) continue;
+      best = Math.min(best, Math.hypot(x - pose.x, y - pose.y));
+    }
+    return best;
+  }
+
+  function makeChallengeZone() {
+    const pressure = tailPressure();
+    const hp = pointAt(head.edge, head.s);
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (let attempts = 0; attempts < 90; attempts++) {
+      const edge = edges[Math.floor(Math.random() * edges.length)];
+      if (edge.len < 80 || edge.tags.includes("yard") && Math.random() < .75) continue;
+
+      const margin = Math.min(45, edge.len * .16);
+      const s = margin + Math.random() * Math.max(1, edge.len - margin * 2);
+      const p = pointAt(edge, s);
+      const headDistance = Math.hypot(p.x - hp.x, p.y - hp.y);
+      if (headDistance < 220 || headDistance > 3200) continue;
+
+      const tailDistance = distanceToPlacedTail(p.x, p.y);
+      // Early: favour reachable open territory. Late: favour positions near
+      // older tail segments, creating the classic Snake temptation to loop back.
+      const tailTarget = 120 + (1 - pressure) * 340;
+      const tailScore = Number.isFinite(tailDistance)
+        ? -Math.abs(tailDistance - tailTarget) / 160
+        : -3;
+      const travelScore = -headDistance / 1800;
+      const score = tailScore * (0.35 + pressure * 1.8) + travelScore + Math.random() * .8;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = { edge, s, x: p.x, y: p.y, angle: p.angle };
+      }
+    }
+
+    if (!best) best = pointAheadOfHead(500);
+    const multiplier = Math.random() < (0.10 + pressure * 0.08) ? 3 : 2;
+    return {
+      ...best,
+      multiplier,
+      expiresAt: performance.now() + (multiplier === 3 ? 12000 : 16000),
+    };
+  }
+
+  function updateChallengeZone(t) {
+    if (!firstPickupCollected || !running || paused || dead) return;
+
+    if (challengeZone && t >= challengeZone.expiresAt) {
+      challengeZone = null;
+      nextChallengeAt = t + 18000 + Math.random() * 16000;
+    }
+
+    if (!challengeZone && t >= nextChallengeAt) {
+      challengeZone = makeChallengeZone();
+      eventBanner.textContent = challengeZone.multiplier === 3
+        ? "RARE ×3 ZONE: reach it before it disappears — your next pickup triples."
+        : "×2 ZONE: reach it before it disappears — your next pickup doubles.";
+      eventBanner.hidden = false;
+    }
+
+    if (!challengeZone) return;
+
+    const hp = pointAt(head.edge, head.s);
+    if (Math.hypot(hp.x - challengeZone.x, hp.y - challengeZone.y) < 28) {
+      pickupMultiplier = challengeZone.multiplier;
+      eventBanner.textContent = "MULTIPLIER ARMED: next streetcar pickup ×" + pickupMultiplier + "!";
+      challengeZone = null;
+      nextChallengeAt = t + 22000 + Math.random() * 18000;
+    }
+  }
+
+  function maintainFoodMagnet(t) {
+    if (!firstPickupCollected || !running || paused || dead) return;
+    const drought = t - lastPickupAt;
+    if (drought < 12000) return;
+
+    // Never let a straightaway turn into dead air. Keep one catchable car a few
+    // seconds ahead and re-target it if the player changes route.
+    const existing = pickups.find((pickup) => pickup.magnet);
+    if (existing && drought < 18000) return;
+
+    pickups = pickups.filter((pickup) => !pickup.magnet);
+    const metresPerSecond = Math.max(12, speedKph / 3.6);
+    const distance = Math.max(90, Math.min(900, metresPerSecond * 3.4));
+    pickups.unshift({ ...pointAheadOfHead(distance), magnet: true });
+    lastPacePickupAt = t;
+  }
+
   function resetGame() {
     trainCars = 1;
     queuedDirection = null;
@@ -1539,6 +1646,10 @@
     openingAssistPlacedAt = 0;
     lastPacePickupAt = 0;
     collisionFrames = 0;
+    lastPickupAt = 0;
+    challengeZone = null;
+    nextChallengeAt = Infinity;
+    pickupMultiplier = 1;
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
     speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
@@ -1575,6 +1686,8 @@
 
     pickups = [makeOpeningPickup()];
     for (let i = 1; i < PICKUP_COUNT; i++) pickups.push(makePickup());
+    lastPickupAt = performance.now();
+    nextChallengeAt = performance.now() + 18000 + Math.random() * 14000;
     updateHud();
     updateSwitchPanel(true);
   }
@@ -1586,6 +1699,10 @@
     dead = false;
     paused = false;
     collisionFrames = 0;
+    lastPickupAt = performance.now();
+    challengeZone = null;
+    nextChallengeAt = performance.now() + 18000 + Math.random() * 14000;
+    pickupMultiplier = 1;
     missionsCompleted = Number(checkpoint.mc) || 0;
     firstPickupCollected = true;
     runStartedAt = 0;
@@ -1951,7 +2068,10 @@
       const pickup = pickups[i];
       if (Math.hypot(p.x - pickup.x, p.y - pickup.y) < 22) {
         const wasFirstPickup = !firstPickupCollected;
-        trainCars++;
+        const gainedCars = Math.max(1, pickupMultiplier);
+        trainCars += gainedCars;
+        pickupMultiplier = 1;
+        lastPickupAt = performance.now();
         pickups.splice(i, 1);
 
         if (wasFirstPickup) {
@@ -1967,9 +2087,11 @@
         saveBest();
         saveResumeCheckpoint();
         updateHud();
-        tip.textContent = trainCars >= 40
-          ? "Forty cars. Transit Control has stopped asking questions."
-          : trainCars + " cars: " + Math.round(totalTrainLength()) + " metres of extremely unofficial TTC.";
+        tip.textContent = gainedCars > 1
+          ? "MULTIPLIER! +" + gainedCars + " streetcars — " + trainCars + " total."
+          : trainCars >= 40
+            ? "Forty cars. Transit Control has stopped asking questions."
+            : trainCars + " cars: " + Math.round(totalTrainLength()) + " metres of extremely unofficial TTC.";
         break;
       }
     }
@@ -2062,7 +2184,7 @@
 
   function startChaos(t) {
     if (!running || dead) return;
-    const choices = ["slow", "block"];
+    const choices = ["slow", "block", "doNotEnter"];
     const type = choices[Math.floor(Math.random() * choices.length)];
 
     if (type === "slow") {
@@ -2076,9 +2198,16 @@
       const edge = options[Math.floor(Math.random() * options.length)];
       if (!edge) return;
       blockedEdgeId = edge.id;
-      chaos = { type, until: t + 19000, edgeId: edge.id };
-      eventBanner.textContent = "STALLED CAR: " +
-        nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + " blocked — divert.";
+
+      if (type === "doNotEnter") {
+        chaos = { type, until: t + 24000, edgeId: edge.id };
+        eventBanner.textContent = "DO NOT ENTER: " +
+          nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + " closed — find another way.";
+      } else {
+        chaos = { type, until: t + 19000, edgeId: edge.id };
+        eventBanner.textContent = "STALLED CAR: " +
+          nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + " blocked — divert.";
+      }
     }
 
     eventBanner.hidden = false;
@@ -2088,7 +2217,7 @@
     if (chaos && t >= chaos.until) {
       chaos = null;
       blockedEdgeId = null;
-      eventBanner.hidden = true;
+      if (!challengeZone && pickupMultiplier === 1) eventBanner.hidden = true;
       nextChaosAt = t + 30000 + Math.random() * 26000;
       updateSwitchPanel(true);
     } else if (!chaos && t >= nextChaosAt) {
@@ -2370,12 +2499,14 @@
       const pulse = 1 + Math.sin(performance.now() / 180 + pickup.x * .001) * .12;
       const p = worldToScreen(pickup.x, pickup.y);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, (pickup.assisted ? 15 : pickup.pace ? 13 : 11) * pulse, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, (pickup.assisted ? 15 : pickup.magnet ? 16 : pickup.pace ? 13 : 11) * pulse, 0, Math.PI * 2);
       ctx.fillStyle = pickup.assisted
         ? "rgba(255,221,87,.72)"
-        : pickup.pace
-          ? "rgba(125,211,252,.70)"
-          : "rgba(255,255,255,.74)";
+        : pickup.magnet
+          ? "rgba(34,197,94,.62)"
+          : pickup.pace
+            ? "rgba(125,211,252,.70)"
+            : "rgba(255,255,255,.74)";
       ctx.fill();
       drawStreetcar(pickup, -1, true);
     }
@@ -2494,17 +2625,59 @@
     if (!blockedEdgeId) return;
     const edge = edgeById(blockedEdgeId);
     if (!edge) return;
+
+    ctx.save();
+    ctx.strokeStyle = chaos?.type === "doNotEnter" ? "#d71920" : "#d97706";
+    ctx.lineWidth = chaos?.type === "doNotEnter" ? 7 : 5;
+    ctx.setLineDash(chaos?.type === "doNotEnter" ? [10, 7] : [6, 6]);
+    ctx.beginPath();
+    for (let i = 0; i < edge.pts.length; i++) {
+      const p = worldToScreen(edge.pts[i].x, edge.pts[i].y);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
     const mid = pointAt(edge, edge.len * .5);
     const p = worldToScreen(mid.x, mid.y);
-    ctx.save();
-    ctx.strokeStyle = "#d97706";
-    ctx.lineWidth = 5;
+    ctx.fillStyle = chaos?.type === "doNotEnter" ? "#d71920" : "#d97706";
+    ctx.font = "900 9px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(chaos?.type === "doNotEnter" ? "DO NOT ENTER" : "BLOCKED", p.x, p.y - 12);
+
     ctx.beginPath();
     ctx.moveTo(p.x - 10, p.y - 10);
     ctx.lineTo(p.x + 10, p.y + 10);
     ctx.moveTo(p.x + 10, p.y - 10);
     ctx.lineTo(p.x - 10, p.y + 10);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawChallengeZone() {
+    if (!challengeZone) return;
+    const p = worldToScreen(challengeZone.x, challengeZone.y);
+    const pulse = 1 + Math.sin(performance.now() / 120) * .10;
+    const radius = (challengeZone.multiplier === 3 ? 25 : 21) * pulse;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = challengeZone.multiplier === 3
+      ? "rgba(168,85,247,.25)"
+      : "rgba(255,193,7,.25)";
+    ctx.fill();
+    ctx.strokeStyle = challengeZone.multiplier === 3 ? "#a855f7" : "#f59f00";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.fillStyle = "#111";
+    ctx.font = "900 12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("×" + challengeZone.multiplier, p.x, p.y);
     ctx.restore();
   }
 
@@ -2541,6 +2714,7 @@
     drawGeographyLabels();
     for (const node of nodes.values()) drawNode(node);
     drawBlockedEdge();
+    drawChallengeZone();
     drawSwitchPreview();
     drawPickups();
 
@@ -2598,6 +2772,8 @@
     if (running && !paused && !dead) {
       maintainOpeningPickup(t);
       maintainPickupDensity(t);
+      maintainFoodMagnet(t);
+      updateChallengeZone(t);
       updateChaos(t);
       const effectiveKph = updateSpeed(dt);
       let frameDistance = (effectiveKph / 3.6) * dt;
