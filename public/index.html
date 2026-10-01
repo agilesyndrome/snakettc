@@ -2569,7 +2569,7 @@
     const desiredViewWidth = Math.max(baseViewWidth, totalTrainLength() * 1.38);
     const maxScale = mobile ? 0.92 : 1.28;
     const fitScale = Math.max(0.20, Math.min(maxScale, W / desiredViewWidth));
-    const targetScale = Math.max(0.12, Math.min(2.8, fitScale * cameraZoomFactor));
+    const targetScale = Math.max(0.06, Math.min(2.8, fitScale * cameraZoomFactor));
 
     // Look a little ahead of the car so high speed feels directional while the
     // tail still influences framing as the consist gets absurdly long.
@@ -3252,7 +3252,7 @@
     const distance = touchDistance(event.touches);
     if (pinchStartDistance <= 0 || distance <= 0) return;
     const ratio = distance / pinchStartDistance;
-    cameraZoomFactor = Math.max(0.45, Math.min(3.0, pinchStartZoomFactor * ratio));
+    cameraZoomFactor = Math.max(0.22, Math.min(3.0, pinchStartZoomFactor * ratio));
   }, { passive: false });
 
   canvas.addEventListener("touchend", (event) => {
