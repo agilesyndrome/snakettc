@@ -191,9 +191,131 @@
     background: rgba(17,19,23,.97);
     box-shadow: 0 20px 60px rgba(0,0,0,.4);
   }
-  .card h1 { margin: 0 0 8px; font-size: clamp(25px, 5vw, 38px); line-height: .98; }
-  .card p { margin: 7px 0; color: #d1d5dc; line-height: 1.45; font-size: 14px; }
-  .card .big { color: white; font-size: 18px; font-weight: 800; }
+  .card h1 {
+    margin: 5px 0 5px;
+    font-size: clamp(30px, 7vw, 44px);
+    line-height: .92;
+    letter-spacing: -.045em;
+  }
+  .card p { margin: 7px 0; color: #d1d5dc; line-height: 1.4; font-size: 13px; }
+  .card .big { color: white; font-size: 17px; font-weight: 800; }
+
+  .start-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 8px;
+    border-radius: 7px;
+    background: var(--ttc-red);
+    color: #fff;
+    font: 900 9px/1 system-ui, sans-serif;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .start-kicker::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.22);
+  }
+
+  .toy-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin: 12px 0 8px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)),
+      repeating-linear-gradient(90deg, transparent 0 30px, rgba(255,255,255,.025) 30px 31px);
+    border: 1px solid rgba(255,255,255,.10);
+    overflow: hidden;
+  }
+  .toy-copy {
+    min-width: 0;
+    color: #fff;
+    font: 900 clamp(15px, 3.5vw, 19px)/1.08 system-ui, sans-serif;
+  }
+  .toy-copy small {
+    display: block;
+    margin-top: 5px;
+    color: #aeb4bc;
+    font: 700 10px/1.2 system-ui, sans-serif;
+  }
+  .toy-car {
+    position: relative;
+    flex: 0 0 auto;
+    width: 116px;
+    height: 52px;
+    border: 3px solid #f4f4f1;
+    border-radius: 15px 15px 11px 11px;
+    background: var(--ttc-red);
+    box-shadow: 0 8px 18px rgba(0,0,0,.25);
+  }
+  .toy-car::before {
+    content: "SNAKE";
+    position: absolute;
+    left: 30px;
+    top: 5px;
+    width: 56px;
+    height: 12px;
+    border-radius: 3px;
+    background: #111;
+    color: #ffb000;
+    font: 900 7px/12px system-ui, sans-serif;
+    text-align: center;
+    letter-spacing: .08em;
+  }
+  .toy-car::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: -7px;
+    height: 9px;
+    background:
+      radial-gradient(circle at 8px 4px, #111 0 4px, transparent 4.5px),
+      radial-gradient(circle at calc(100% - 8px) 4px, #111 0 4px, transparent 4.5px);
+  }
+  .toy-windows {
+    position: absolute;
+    left: 9px;
+    right: 9px;
+    top: 22px;
+    height: 16px;
+    border-radius: 5px;
+    background:
+      linear-gradient(90deg,
+        #dbeafe 0 21%, transparent 21% 25%,
+        #dbeafe 25% 46%, transparent 46% 50%,
+        #dbeafe 50% 71%, transparent 71% 75%,
+        #dbeafe 75% 100%);
+  }
+
+  .quick-rules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 11px 0 2px;
+  }
+  .quick-rule {
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.10);
+    color: #e7e9ed;
+    font: 800 10px/1 system-ui, sans-serif;
+  }
+  .transit-joke {
+    margin-top: 10px;
+    color: #8f97a2;
+    font: 700 9px/1.2 system-ui, sans-serif;
+    text-align: center;
+  }
   .card button {
     margin-top: 14px;
     border: 0;
@@ -560,6 +682,11 @@
     }
     .card p { font-size: 12px; }
     .card .big { font-size: 16px; }
+    .toy-wrap { padding: 9px 10px; margin-top: 10px; }
+    .toy-car { width: 96px; height: 46px; }
+    .toy-car::before { left: 24px; width: 48px; }
+    .toy-windows { top: 21px; height: 13px; }
+    .quick-rule { font-size: 9px; padding: 6px 7px; }
   }
 </style>
 </head>
@@ -618,14 +745,28 @@
 </div>
 
 <div id="overlay">
-  <div class="card">
-    <h1>Streetcar Snake</h1>
-    <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
-    <p>Collect glowing Flexitys. Your first one is dispatched onto the track ahead so the run gets moving immediately; later cars spread across the network. Every pickup adds another full 30.20 m streetcar to your train.</p>
-    <p>Loops and carhouses are fair game. Running into your own train is not.</p>
-    <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 2000 km/h because apparently Toronto has an aviation corridor now.</p>
-    <p>On touch devices: <strong>BRAKE is under your left thumb, ACCEL under your right</strong>. When special work approaches, LEFT / STRAIGHT / RIGHT appears between them. Bonus zones get an off-screen chase arrow.</p>
-    <p><strong>Snake pressure:</strong> chase ×2/rare ×3 zones to multiply your next pickup. As your train grows, those bonus zones increasingly appear near your own tail. Track closures and food magnets keep the route moving.</p>
+  <div class="card start-card">
+    <div class="start-kicker">Toronto's least authorized streetcar service</div>
+    <h1 id="overlayTitle">Streetcar Snake</h1>
+
+    <div class="toy-wrap" id="overlayHero">
+      <div class="toy-copy" id="overlayLead">
+        Eat streetcars. Get absurdly long.<br>Don't eat yourself.
+        <small>Basically Snake, except the snake is 30-tonne transit equipment.</small>
+      </div>
+      <div class="toy-car" aria-hidden="true"><div class="toy-windows"></div></div>
+    </div>
+
+    <div class="quick-rules" id="overlayRules">
+      <span class="quick-rule">🚋 collect cars</span>
+      <span class="quick-rule">×2 ×3 chase bonuses</span>
+      <span class="quick-rule">↙ throw switches</span>
+      <span class="quick-rule">🐍 avoid your tail</span>
+    </div>
+
+    <p id="overlayStatus" hidden></p>
+    <p id="overlayExtra" hidden></p>
+
     <div class="mode-picker">
       <div class="mode-field">
         <label for="gameModeSelect">Game mode</label>
@@ -646,6 +787,7 @@
     <label class="sound-option"><input id="muteSounds" type="checkbox" /> Mute sounds</label>
     <button id="resumeBtn">Resume</button>
     <button id="startBtn">Begin new game — Free Play • Arcade</button>
+    <div class="transit-joke" id="overlayJoke">⚠ Transit Control would like a word.</div>
   </div>
 </div>
 
@@ -695,6 +837,13 @@
   const overlay = document.getElementById("overlay");
   const startBtn = document.getElementById("startBtn");
   const resumeBtn = document.getElementById("resumeBtn");
+  const overlayTitle = document.getElementById("overlayTitle");
+  const overlayHero = document.getElementById("overlayHero");
+  const overlayLead = document.getElementById("overlayLead");
+  const overlayRules = document.getElementById("overlayRules");
+  const overlayStatus = document.getElementById("overlayStatus");
+  const overlayExtra = document.getElementById("overlayExtra");
+  const overlayJoke = document.getElementById("overlayJoke");
   const aboutBtn = document.getElementById("aboutBtn");
   const aboutPanel = document.getElementById("aboutPanel");
   const missionHud = document.getElementById("missionHud");
@@ -2297,10 +2446,15 @@
     clearResumeCheckpoint();
     updateHud();
     overlay.classList.remove("hidden");
-    overlay.querySelector("h1").textContent = "Service suspended";
-    overlay.querySelector(".big").textContent = "You coupled " + (trainCars - 1) + " extra streetcars into a " + Math.round(totalTrainLength()) + " m consist.";
-    overlay.querySelectorAll("p")[1].textContent = "The head of the train met the rest of the train. This is frowned upon, even by Toronto standards.";
-    overlay.querySelectorAll("p")[2].textContent = "High score: " + best + " joined streetcars.";
+    overlayTitle.textContent = "Service suspended";
+    overlayLead.innerHTML = "You built a <strong>" + trainCars + "-car</strong> monster.<small>" +
+      Math.round(totalTrainLength()) + " m of streetcar before it ate itself.</small>";
+    overlayHero.style.display = "flex";
+    overlayRules.style.display = "none";
+    overlayStatus.hidden = false;
+    overlayStatus.textContent = "High score: " + best + " joined streetcars.";
+    overlayExtra.hidden = true;
+    overlayJoke.textContent = "🚧 Please stand by while Transit Control invents an explanation.";
     startBtn.textContent = "Begin new game";
   }
 
@@ -3100,6 +3254,17 @@
     }
   }
 
+  function restoreStartCard() {
+    overlayTitle.textContent = "Streetcar Snake";
+    overlayLead.innerHTML = "Eat streetcars. Get absurdly long.<br>Don't eat yourself." +
+      "<small>Basically Snake, except the snake is 30-tonne transit equipment.</small>";
+    overlayHero.style.display = "flex";
+    overlayRules.style.display = "flex";
+    overlayStatus.hidden = true;
+    overlayExtra.hidden = true;
+    overlayJoke.textContent = "⚠ Transit Control would like a word.";
+  }
+
   function beginRunning() {
     overlay.classList.add("hidden");
     running = true;
@@ -3110,6 +3275,7 @@
   }
 
   resumeBtn.addEventListener("click", () => {
+    restoreStartCard();
     const checkpoint = readResumeCheckpoint();
     if (!checkpoint) {
       clearResumeCheckpoint();
@@ -3121,6 +3287,7 @@
   });
 
   startBtn.addEventListener("click", () => {
+    restoreStartCard();
     clearResumeCheckpoint();
     resetGame();
     beginRunning();
