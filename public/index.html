@@ -31,7 +31,7 @@
     left: max(12px, env(safe-area-inset-left));
     top: max(12px, env(safe-area-inset-top));
     display: grid;
-    grid-template-columns: repeat(4, auto);
+    grid-template-columns: repeat(5, auto);
     gap: 8px;
     pointer-events: none;
   }
@@ -213,22 +213,65 @@
   .mode-picker {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 10px;
     margin-top: 14px;
   }
-  .card .mode-btn {
-    margin-top: 0;
-    border: 1px solid rgba(255,255,255,.16);
+  .mode-field label {
+    display: block;
+    margin-bottom: 5px;
+    color: #bfc5cc;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .mode-field select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 10px;
+    padding: 0 10px;
     background: #292d33;
-    color: #d7dbe1;
-    font-size: 12px;
-    letter-spacing: .04em;
+    color: #fff;
+    font: 800 13px system-ui, sans-serif;
   }
-  .card .mode-btn.selected {
-    background: var(--ttc-red);
+
+  #locationHud {
+    grid-column: 1 / -1;
+    max-width: min(660px, calc(100vw - 24px));
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: rgba(12,14,17,.90);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 6px 20px rgba(0,0,0,.22);
+    color: #f3f4f6;
+    font-size: 11px;
+  }
+  #locationHud strong { color: #fff; }
+
+  #speedControls {
+    position: fixed;
+    z-index: 9;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 46px);
+    display: grid;
+    grid-template-columns: 92px 92px;
+    gap: 8px;
+  }
+  .pedal {
+    min-height: 52px;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 14px;
+    background: rgba(12,14,17,.88);
     color: white;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+    box-shadow: 0 5px 16px rgba(0,0,0,.22);
+    font: 900 12px/1.1 system-ui, sans-serif;
+    touch-action: none;
   }
+  .pedal small { display: block; margin-top: 3px; color: #adb5bd; font-size: 8px; letter-spacing: .06em; }
+  .pedal:active, .pedal.active { transform: translateY(1px); }
+  #accelerator.active { background: #087f5b; }
+  #brake.active { background: #a61e24; }
 
   #missionHud {
     grid-column: 1 / -1;
@@ -302,7 +345,7 @@
   #eventBanner[hidden] { display: none; }
 
   @media (max-width: 760px) {
-    .hud { grid-template-columns: repeat(4, minmax(64px, 1fr)); right: 12px; }
+    .hud { grid-template-columns: repeat(5, minmax(58px, 1fr)); right: 12px; }
     .brand { min-height: 66px; padding-right: 195px; }
     .brand small { max-width: 320px; }
     .stat { min-width: 0; }
@@ -328,7 +371,13 @@
       width: auto;
       transform: none;
     }
-    #eventBanner { top: 232px; }
+    #eventBanner { top: 256px; }
+    #speedControls {
+      bottom: 14px;
+      grid-template-columns: 76px 76px;
+    }
+    .pedal { min-height: 46px; }
+    .mode-picker { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -346,7 +395,9 @@
   <div class="stat"><b id="joinedStat">0</b><span>joined</span></div>
   <div class="stat"><b id="bestStat">0</b><span>high score</span></div>
   <div class="stat"><b id="lengthStat">30 m</b><span>train length</span></div>
-  <div class="tip" id="tip">Arrow keys / WASD steer. At a switch use Q / E / R or the turnout panel for left / right / straight. Space or P pauses.</div>
+  <div class="stat"><b id="speedStat">40</b><span>km/h</span></div>
+  <div id="locationHud"><strong>YOU ARE NEAR:</strong> finding the rails…</div>
+  <div class="tip" id="tip">Arrow keys / WASD steer. Q / E / R throw switches. Hold + to accelerate, − to brake. Space or P pauses.</div>
   <div id="missionHud" aria-live="polite">
     <div id="missionRoute">501</div>
     <div id="missionText"><b>Route mission</b><span>Destination</span></div>
@@ -359,6 +410,11 @@
   <div id="switchTitle">Upcoming switch</div>
   <div id="switchMeta">Approaching junction</div>
   <div id="switchChoices"></div>
+</div>
+
+<div id="speedControls" aria-label="Speed controls">
+  <button id="brake" class="pedal" aria-label="Brake">BRAKE<small>hold • − key</small></button>
+  <button id="accelerator" class="pedal" aria-label="Accelerator">ACCEL<small>hold • + key</small></button>
 </div>
 
 <div id="dpad" aria-label="Touch controls">
@@ -381,6 +437,7 @@
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
+  <p><strong>Speed:</strong> Normal Operator is governed to 50 km/h for playability. The real Flexity vehicle is rated to a 70 km/h maximum. Rogue Operator removes the game governor and allows intentionally fictional over-speed beyond 70 km/h.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -390,11 +447,23 @@
     <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
     <p>Collect glowing Flexitys. Every pickup adds another full 30.20 m streetcar to your train. Queue a direction before the next switch and the consist follows the rails.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
-    <div class="mode-picker" role="group" aria-label="Game mode">
-      <button class="mode-btn selected" data-mode="free">Free Play</button>
-      <button class="mode-btn" data-mode="mission">Route Missions</button>
+    <div class="mode-picker">
+      <div class="mode-field">
+        <label for="gameModeSelect">Game mode</label>
+        <select id="gameModeSelect">
+          <option value="free">Free Play</option>
+          <option value="mission">Route Missions</option>
+        </select>
+      </div>
+      <div class="mode-field">
+        <label for="operatorModeSelect">Operator</label>
+        <select id="operatorModeSelect">
+          <option value="normal">Normal — governed to 50 km/h</option>
+          <option value="rogue">Rogue Operator — governor removed</option>
+        </select>
+      </div>
     </div>
-    <button id="startBtn">Ring bell &amp; depart</button>
+    <button id="startBtn">Depart: Free Play</button>
   </div>
 </div>
 
@@ -413,7 +482,10 @@
   const CAR_WIDTH_M = 2.54;
   const COUPLER_GAP_M = 1.50;
   const CAR_SPACING_M = CAR_LENGTH_M + COUPLER_GAP_M;
-  const MAX_SPEED_MPS = 19.0; // Near the TTC-published 70 km/h vehicle maximum.
+  const NORMAL_GOVERNOR_KPH = 50;
+  const FLEXITY_RATED_MAX_KPH = 70;
+  const ROGUE_GAME_MAX_KPH = 140; // Deliberately fictional overdrive beyond 70 km/h.
+  const START_SPEED_KPH = 40;
   const PICKUP_COUNT = 8;
   const REF_LAT = 43.6500;
   const REF_LON = -79.3900;
@@ -428,6 +500,8 @@
   const joinedStat = document.getElementById("joinedStat");
   const bestStat = document.getElementById("bestStat");
   const lengthStat = document.getElementById("lengthStat");
+  const speedStat = document.getElementById("speedStat");
+  const locationHud = document.getElementById("locationHud");
   const tip = document.getElementById("tip");
   const overlay = document.getElementById("overlay");
   const startBtn = document.getElementById("startBtn");
@@ -440,7 +514,10 @@
   const switchMeta = document.getElementById("switchMeta");
   const switchChoices = document.getElementById("switchChoices");
   const eventBanner = document.getElementById("eventBanner");
-  const modeButtons = [...document.querySelectorAll(".mode-btn")];
+  const gameModeSelect = document.getElementById("gameModeSelect");
+  const operatorModeSelect = document.getElementById("operatorModeSelect");
+  const accelerator = document.getElementById("accelerator");
+  const brake = document.getElementById("brake");
 
   let dpr = 1;
   let W = 0;
@@ -725,6 +802,21 @@
     { route: "512", name: "ST CLAIR", a: "gunns", b: "stClairYonge", aEdge: "stclair1", bEdge: "stclair3" },
   ];
 
+  const MAP_LABELS = [
+    ["ST CLAIR AVE W", 43.6817, -79.4410, 0],
+    ["COLLEGE / CARLTON / GERRARD", 43.6607, -79.3900, 0],
+    ["DUNDAS ST", 43.6550, -79.4140, 0],
+    ["QUEEN ST", 43.6530, -79.3900, 0],
+    ["KING ST", 43.6465, -79.3900, 0],
+    ["QUEENS QUAY", 43.6384, -79.3890, 0],
+    ["RONCESVALLES AVE", 43.6455, -79.4487, -Math.PI / 2],
+    ["BATHURST ST", 43.6565, -79.4075, -Math.PI / 2],
+    ["SPADINA AVE", 43.6530, -79.3970, -Math.PI / 2],
+    ["BROADVIEW AVE", 43.6670, -79.3565, -Math.PI / 2],
+    ["LESLIE ST", 43.6603, -79.3310, -Math.PI / 2],
+    ["LAKE ONTARIO", 43.6230, -79.3900, 0],
+  ].map(([label, lat, lon, angle]) => ({ label, ...project(lat, lon), angle }));
+
   // -------------------------------------------------------------------------
   // Geometry helpers
   // -------------------------------------------------------------------------
@@ -813,6 +905,10 @@
   let audioCtx = null;
   let selectedMode = "free";
   let gameMode = "free";
+  let operatorMode = "normal";
+  let speedKph = START_SPEED_KPH;
+  let acceleratorHeld = false;
+  let brakeHeld = false;
   let currentMission = null;
   let missionsCompleted = 0;
   let chaos = null;
@@ -844,7 +940,62 @@
     lengthStat.textContent = totalTrainLength() >= 1000
       ? (totalTrainLength() / 1000).toFixed(2) + " km"
       : Math.round(totalTrainLength()) + " m";
+    speedStat.textContent = String(Math.round(speedKph));
+    speedStat.style.color = speedKph > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
+    updateLocationHud();
     updateMissionHud();
+  }
+
+  function headingCardinal() {
+    const a = Math.atan2(head.headingY, head.headingX);
+    const dirs = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"];
+    return dirs[(Math.round(a / (Math.PI / 4)) + 8) % 8];
+  }
+
+  function nearestNode() {
+    if (!head) return null;
+    const p = pointAt(head.edge, head.s);
+    let nearest = null;
+    let bestDistance = Infinity;
+    for (const node of nodes.values()) {
+      const d = Math.hypot(p.x - node.x, p.y - node.y);
+      if (d < bestDistance) {
+        bestDistance = d;
+        nearest = node;
+      }
+    }
+    return { node: nearest, distance: bestDistance };
+  }
+
+  function updateLocationHud() {
+    if (!head) return;
+    const near = nearestNode();
+    const tags = head.edge.tags.filter((tag) => /^\d/.test(tag));
+    const routeText = tags.length ? " • tracks " + tags.join("/") : "";
+    const rated = speedKph > FLEXITY_RATED_MAX_KPH ? " • ⚠ beyond Flexity rated 70" : "";
+    locationHud.innerHTML = "<strong>YOU ARE NEAR:</strong> " + near.node.label +
+      " • " + headingCardinal() + routeText + rated;
+  }
+
+  function randomHeadOnEdges(candidateEdges) {
+    const usable = candidateEdges.filter((edge) => edge.len > 90 && !edge.tags.includes("yard"));
+    const pool = usable.length ? usable : candidateEdges;
+    const edge = pool[Math.floor(Math.random() * pool.length)];
+    const margin = Math.min(45, edge.len * .18);
+    const s = margin + Math.random() * Math.max(1, edge.len - margin * 2);
+    const dir = Math.random() < .5 ? -1 : 1;
+    const p = pointAt(edge, s);
+    const angle = p.angle + (dir < 0 ? Math.PI : 0);
+    return { edge, s, dir, headingX: Math.cos(angle), headingY: Math.sin(angle) };
+  }
+
+  function missionEdges(def) {
+    const base = def.route.replace(/[A-Z]$/, "");
+    return edges.filter((edge) =>
+      edge.tags.includes(def.route) ||
+      edge.tags.includes(base) ||
+      (base === "504" && edge.tags.includes("504"))
+    );
   }
 
   function buildMission(def, reverse = false) {
@@ -913,19 +1064,25 @@
     trailStart = 0;
     trailDistance = 0;
     missionsCompleted = 0;
-    gameMode = selectedMode;
+    gameMode = gameModeSelect.value;
+    operatorMode = operatorModeSelect.value;
+    speedKph = START_SPEED_KPH;
+    acceleratorHeld = false;
+    brakeHeld = false;
     currentMission = null;
 
     if (gameMode === "mission") {
       const def = MISSION_DEFS[Math.floor(Math.random() * MISSION_DEFS.length)];
       currentMission = buildMission(def, Math.random() < 0.5);
-      head = placeHeadFromNode(currentMission.originNode, currentMission.startEdge);
+      head = randomHeadOnEdges(missionEdges(def));
       tip.textContent = currentMission.def.route + " " + currentMission.def.name +
-        ": take it to " + nodes.get(currentMission.targetNode).label + ".";
+        ": you entered service mid-route. Take it to " + nodes.get(currentMission.targetNode).label + ".";
     } else {
-      const startEdge = edgeById("queen1");
-      head = { edge: startEdge, s: 90, dir: 1, headingX: 1, headingY: 0 };
-      tip.textContent = "Free Play — the entire network is yours. Collect Flexitys and mind your own tail.";
+      const candidates = edges.filter((edge) =>
+        !edge.tags.includes("yard") && edge.len > 100
+      );
+      head = randomHeadOnEdges(candidates);
+      tip.textContent = "Free Play — randomized start. The entire network is yours.";
     }
 
     const p = pointAt(head.edge, head.s);
@@ -1423,6 +1580,30 @@
     targetCtx.globalAlpha = 1;
   }
 
+  function drawGeographyLabels() {
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    for (const item of MAP_LABELS) {
+      const p = worldToScreen(item.x, item.y);
+      if (p.x < -140 || p.x > W + 140 || p.y < -80 || p.y > H + 80) continue;
+
+      const lake = item.label === "LAKE ONTARIO";
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(item.angle || 0);
+      ctx.font = lake ? "italic 800 13px system-ui, sans-serif" : "800 10px system-ui, sans-serif";
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = lake ? "rgba(190,216,229,.96)" : "rgba(241,238,229,.92)";
+      ctx.fillStyle = lake ? "rgba(46,95,122,.72)" : "rgba(72,76,80,.62)";
+      ctx.strokeText(item.label, 0, 0);
+      ctx.fillText(item.label, 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   function drawNode(node) {
     if (!['loop', 'station', 'carhouse'].includes(node.type)) return;
     const p = worldToScreen(node.x, node.y);
@@ -1565,6 +1746,22 @@
       mctx.fill();
     }
 
+    if (mW >= 180) {
+      const miniLabels = [
+        ["Long Branch", "longBranch"], ["Dundas W", "dundasWest"],
+        ["Union", "union"], ["Broadview", "broadviewStation"],
+        ["Main", "mainStation"], ["Neville", "neville"], ["Gunns", "gunns"],
+      ];
+      mctx.font = "700 7px system-ui, sans-serif";
+      mctx.fillStyle = "rgba(40,44,48,.72)";
+      mctx.textAlign = "center";
+      for (const [label, nodeId] of miniLabels) {
+        const n = nodes.get(nodeId);
+        const p = mp(n.x, n.y);
+        mctx.fillText(label, p.x, p.y - 4);
+      }
+    }
+
     if (poses.length) {
       const tail = mp(poses.at(-1).x, poses.at(-1).y);
       const hp = mp(poses[0].x, poses[0].y);
@@ -1574,10 +1771,18 @@
       mctx.moveTo(tail.x, tail.y);
       mctx.lineTo(hp.x, hp.y);
       mctx.stroke();
-      mctx.fillStyle = "#0d0f12";
+
+      mctx.fillStyle = "#fff";
+      mctx.strokeStyle = "#d71920";
+      mctx.lineWidth = 2.5;
       mctx.beginPath();
-      mctx.arc(hp.x, hp.y, 3.2, 0, Math.PI * 2);
+      mctx.arc(hp.x, hp.y, 5.2, 0, Math.PI * 2);
       mctx.fill();
+      mctx.stroke();
+      mctx.fillStyle = "#111";
+      mctx.font = "900 7px system-ui, sans-serif";
+      mctx.textAlign = "left";
+      mctx.fillText("YOU", hp.x + 7, hp.y + 2);
     }
   }
 
@@ -1634,6 +1839,7 @@
     drawWater();
 
     drawNetwork();
+    drawGeographyLabels();
     for (const node of nodes.values()) drawNode(node);
     drawBlockedEdge();
     drawSwitchPreview();
@@ -1649,6 +1855,22 @@
   // Main loop
   // -------------------------------------------------------------------------
 
+  function speedCapKph() {
+    return operatorMode === "rogue" ? ROGUE_GAME_MAX_KPH : NORMAL_GOVERNOR_KPH;
+  }
+
+  function updateSpeed(dt) {
+    if (acceleratorHeld) speedKph += 30 * dt;
+    if (brakeHeld) speedKph -= 48 * dt;
+    speedKph = Math.max(0, Math.min(speedCapKph(), speedKph));
+
+    // A slow order overrides the operator controls without permanently changing
+    // the selected speed; once cleared the car can accelerate again.
+    const effective = chaos?.type === "slow" ? Math.min(speedKph, 25) : speedKph;
+    speedStat.textContent = String(Math.round(effective));
+    return effective;
+  }
+
   function frame(t) {
     if (!lastT) lastT = t;
     const dt = Math.min(0.05, (t - lastT) / 1000);
@@ -1656,9 +1878,8 @@
 
     if (running && !paused && !dead) {
       updateChaos(t);
-      const normalSpeed = Math.min(MAX_SPEED_MPS, 10.5 + (trainCars - 1) * 0.17);
-      const speed = chaos?.type === "slow" ? Math.min(normalSpeed, 7.0) : normalSpeed;
-      advanceHead(speed * dt);
+      const effectiveKph = updateSpeed(dt);
+      advanceHead((effectiveKph / 3.6) * dt);
       addTrailSample();
       checkPickups();
       updateSwitchPanel();
@@ -1695,11 +1916,30 @@
     } else if (key === "r") {
       event.preventDefault();
       selectSwitchByIntent("straight");
+    } else if (key === "+" || key === "=") {
+      event.preventDefault();
+      acceleratorHeld = true;
+      accelerator.classList.add("active");
+    } else if (key === "-" || key === "_") {
+      event.preventDefault();
+      brakeHeld = true;
+      brake.classList.add("active");
     } else if (key === " " || key === "p") {
       event.preventDefault();
       togglePause();
     }
   }, { passive: false });
+
+  addEventListener("keyup", (event) => {
+    const key = event.key.toLowerCase();
+    if (key === "+" || key === "=") {
+      acceleratorHeld = false;
+      accelerator.classList.remove("active");
+    } else if (key === "-" || key === "_") {
+      brakeHeld = false;
+      brake.classList.remove("active");
+    }
+  });
 
   switchChoices.addEventListener("pointerdown", (event) => {
     const button = event.target.closest(".switch-choice");
@@ -1729,12 +1969,36 @@
     else queueDirection(dy > 0 ? "down" : "up");
   });
 
-  modeButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      selectedMode = button.dataset.mode;
-      modeButtons.forEach((b) => b.classList.toggle("selected", b === button));
-    });
+  function updateStartButton() {
+    const label = gameModeSelect.value === "mission" ? "Route Mission" : "Free Play";
+    const rogue = operatorModeSelect.value === "rogue" ? " • Rogue Operator" : "";
+    startBtn.textContent = "Depart: " + label + rogue;
+  }
+  gameModeSelect.addEventListener("change", updateStartButton);
+  operatorModeSelect.addEventListener("change", updateStartButton);
+  updateStartButton();
+
+  function setPedal(button, kind, pressed) {
+    if (kind === "accelerate") acceleratorHeld = pressed;
+    else brakeHeld = pressed;
+    button.classList.toggle("active", pressed);
+  }
+
+  accelerator.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    accelerator.setPointerCapture?.(event.pointerId);
+    setPedal(accelerator, "accelerate", true);
   });
+  brake.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    brake.setPointerCapture?.(event.pointerId);
+    setPedal(brake, "brake", true);
+  });
+  for (const [button, kind] of [[accelerator, "accelerate"], [brake, "brake"]]) {
+    for (const evt of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      button.addEventListener(evt, () => setPedal(button, kind, false));
+    }
+  }
 
   startBtn.addEventListener("click", () => {
     resetGame();
