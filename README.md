@@ -114,3 +114,12 @@ Two false-death paths were corrected: placeholder tail cars created when a consi
 - The map's single street-corridor centreline is rendered as two directional virtual rails separated by a few metres, so a terminal turnaround no longer sends the outbound head directly back through its inbound consist.
 - Simplified degree-1 endpoints get a short virtual loop connection plus a distance-based collision grace covering only the lead car's physical clearance of the loop.
 - On touch devices, two-finger pinch gestures zoom the game camera instead of Safari's page viewport. The HUD, brake, accelerator, and switch controls remain screen-sized and fixed in their safe areas.
+
+
+### Geographic next-stop display
+
+- The driving HUD now shows **Next Stop:** instead of a generic nearest-location readout.
+- A compact TTC streetcar stop dataset is snapped onto the simplified playable rail geometry and deduplicated into geographic stop markers.
+- Tiny diamond markers show stop locations on the map; the upcoming stop is highlighted.
+- Stop choice follows the actual track path ahead, not a selected route schedule. Throwing a switch immediately recalculates the next stop on the newly selected track.
+- Kingston Road / Bingham physical stops are included even while current 503 service is temporarily bus-replaced.
