@@ -270,7 +270,7 @@
     left: max(14px, env(safe-area-inset-left));
     bottom: calc(max(14px, env(safe-area-inset-bottom)) + 46px);
     display: grid;
-    grid-template-columns: 92px 48px 92px;
+    grid-template-columns: 92px 92px;
     gap: 8px;
   }
   .pedal {
@@ -287,7 +287,17 @@
   .pedal:active, .pedal.active { transform: translateY(1px); }
   #accelerator.active { background: #087f5b; }
   #brake.active { background: #a61e24; }
-  #pauseBtn { font-size: 17px; padding: 0; }
+  #pauseBtn {
+    position: fixed;
+    z-index: 9;
+    right: max(14px, env(safe-area-inset-right));
+    top: 126px;
+    width: 42px;
+    min-height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 15px;
+  }
 
   #missionHud {
     grid-column: 1 / -1;
@@ -477,34 +487,67 @@
     #eventBanner[hidden] { display: none; }
 
     #speedControls {
-      left: 50%;
+      left: 0;
+      right: 0;
       bottom: max(10px, env(safe-area-inset-bottom));
-      transform: translateX(-50%);
-      grid-template-columns: 68px 44px 68px;
-      gap: 6px;
+      transform: none;
+      display: block;
+      pointer-events: none;
     }
-    .pedal {
-      width: auto;
-      min-height: 52px;
+    #speedControls .pedal {
+      position: fixed;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      width: 82px;
+      min-height: 58px;
       padding: 4px;
-      border-radius: 13px;
-      font-size: 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      pointer-events: auto;
     }
+    #brake { left: max(10px, env(safe-area-inset-left)); }
+    #accelerator { right: max(10px, env(safe-area-inset-right)); }
     .pedal small { display: none; }
 
-    #switchPanel {
-      left: 8px;
-      right: 8px;
-      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 68px);
-      width: auto;
-      padding: 6px;
-      transform: none;
-      border-radius: 10px;
+    #pauseBtn {
+      top: calc(max(8px, env(safe-area-inset-top)) + 101px);
+      right: max(8px, env(safe-area-inset-right));
+      width: 34px;
+      min-height: 34px;
+      border-radius: 50%;
+      font-size: 11px;
+      background: rgba(12,14,17,.84);
     }
+
+    #switchPanel {
+      left: 102px;
+      right: 102px;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      width: auto;
+      min-height: 58px;
+      padding: 5px;
+      transform: none;
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    #switchPanel[hidden] { display: none; }
     #switchTitle { display: none; }
-    #switchMeta { margin: 0; font-size: 9px; }
-    #switchChoices { margin-top: 5px; gap: 4px; }
-    .switch-choice { padding: 7px 4px; font-size: 9px; }
+    #switchMeta {
+      margin: 0 0 3px;
+      font-size: 8px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #switchChoices { margin-top: 1px; gap: 3px; }
+    .switch-choice {
+      min-height: 38px;
+      padding: 5px 2px;
+      border-radius: 10px;
+      font-size: 8px;
+    }
 
     #aboutBtn { display: none; }
 
@@ -553,9 +596,9 @@
 
 <div id="speedControls" aria-label="Driving controls">
   <button id="brake" class="pedal" aria-label="Brake">BRAKE<small>hold • − key</small></button>
-  <button id="pauseBtn" class="pedal" aria-label="Pause">Ⅱ</button>
   <button id="accelerator" class="pedal" aria-label="Accelerator">ACCEL<small>hold • + key</small></button>
 </div>
+<button id="pauseBtn" class="pedal" aria-label="Pause">Ⅱ</button>
 
 <button id="aboutBtn">Map + sources</button>
 <div id="aboutPanel">
@@ -581,7 +624,7 @@
     <p>Collect glowing Flexitys. Your first one is dispatched onto the track ahead so the run gets moving immediately; later cars spread across the network. Every pickup adds another full 30.20 m streetcar to your train.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
     <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 2000 km/h because apparently Toronto has an aviation corridor now.</p>
-    <p>On touch devices: brake/accelerate at the bottom, then use the contextual <strong>LEFT / STRAIGHT / RIGHT</strong> switch buttons when special work approaches.</p>
+    <p>On touch devices: <strong>BRAKE is under your left thumb, ACCEL under your right</strong>. When special work approaches, LEFT / STRAIGHT / RIGHT appears between them. Bonus zones get an off-screen chase arrow.</p>
     <p><strong>Snake pressure:</strong> chase ×2/rare ×3 zones to multiply your next pickup. As your train grows, those bonus zones increasingly appear near your own tail. Track closures and food magnets keep the route moving.</p>
     <div class="mode-picker">
       <div class="mode-field">
@@ -1100,6 +1143,7 @@
   let challengeZone = null;
   let nextChallengeAt = Infinity;
   let pickupMultiplier = 1;
+  let gameEffects = [];
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1586,6 +1630,16 @@
     };
   }
 
+  function addGameEffect(text, kind = "normal", duration = 1000) {
+    gameEffects.push({
+      text,
+      kind,
+      createdAt: performance.now(),
+      duration,
+    });
+    if (gameEffects.length > 8) gameEffects.shift();
+  }
+
   function updateChallengeZone(t) {
     if (!firstPickupCollected || !running || paused || dead) return;
 
@@ -1607,6 +1661,7 @@
     const hp = pointAt(head.edge, head.s);
     if (Math.hypot(hp.x - challengeZone.x, hp.y - challengeZone.y) < 28) {
       pickupMultiplier = challengeZone.multiplier;
+      addGameEffect("×" + pickupMultiplier + " ARMED", pickupMultiplier === 3 ? "rare" : "bonus", 1350);
       eventBanner.textContent = "MULTIPLIER ARMED: next streetcar pickup ×" + pickupMultiplier + "!";
       challengeZone = null;
       nextChallengeAt = t + 22000 + Math.random() * 18000;
@@ -1650,6 +1705,7 @@
     challengeZone = null;
     nextChallengeAt = Infinity;
     pickupMultiplier = 1;
+    gameEffects = [];
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
     speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
@@ -1703,6 +1759,7 @@
     challengeZone = null;
     nextChallengeAt = performance.now() + 18000 + Math.random() * 14000;
     pickupMultiplier = 1;
+    gameEffects = [];
     missionsCompleted = Number(checkpoint.mc) || 0;
     firstPickupCollected = true;
     runStartedAt = 0;
@@ -2084,6 +2141,11 @@
 
         while (pickups.length < desiredPickupCount()) pickups.push(makePickup());
         pickupChime();
+        addGameEffect(
+          gainedCars > 1 ? "+" + gainedCars + " CARS!" : "+1 CAR",
+          gainedCars >= 3 ? "rare" : gainedCars === 2 ? "bonus" : "normal",
+          gainedCars > 1 ? 1350 : 900
+        );
         saveBest();
         saveResumeCheckpoint();
         updateHud();
@@ -2681,6 +2743,130 @@
     ctx.restore();
   }
 
+  function drawChallengeArrow() {
+    if (!challengeZone || !head) return;
+
+    const target = worldToScreen(challengeZone.x, challengeZone.y);
+    const margin = 54;
+    if (target.x >= margin && target.x <= W - margin &&
+        target.y >= margin && target.y <= H - margin) {
+      return;
+    }
+
+    const cx = W / 2;
+    const cy = H / 2;
+    const dx = target.x - cx;
+    const dy = target.y - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx / len;
+    const uy = dy / len;
+
+    const usableHalfW = W / 2 - margin;
+    const usableHalfH = H / 2 - margin;
+    const tx = Math.abs(ux) > 0.001 ? usableHalfW / Math.abs(ux) : Infinity;
+    const ty = Math.abs(uy) > 0.001 ? usableHalfH / Math.abs(uy) : Infinity;
+    const travel = Math.min(tx, ty);
+    const x = cx + ux * travel;
+    const y = cy + uy * travel;
+
+    const hp = pointAt(head.edge, head.s);
+    const metres = Math.hypot(challengeZone.x - hp.x, challengeZone.y - hp.y);
+    const distanceLabel = metres >= 1000
+      ? (metres / 1000).toFixed(1) + " km"
+      : Math.round(metres) + " m";
+
+    const rare = challengeZone.multiplier === 3;
+    const accent = rare ? "#a855f7" : "#f59f00";
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan2(uy, ux));
+
+    ctx.fillStyle = accent;
+    ctx.beginPath();
+    ctx.moveTo(18, 0);
+    ctx.lineTo(-8, -11);
+    ctx.lineTo(-8, 11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.font = "900 10px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const label = "×" + challengeZone.multiplier + "  " + distanceLabel;
+    const w = ctx.measureText(label).width + 14;
+    roundedRectPath(ctx, x - w / 2, y + 17, w, 22, 8);
+    ctx.fillStyle = "rgba(16,17,20,.90)";
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(label, x, y + 28);
+    ctx.restore();
+  }
+
+  function drawGameEffects(poses, now) {
+    if (!poses.length) return;
+    const lead = worldToScreen(poses[0].x, poses[0].y);
+
+    // Persistent armed multiplier badge: keep the power-up visually attached to
+    // the player's streetcar instead of hiding it in HUD text.
+    if (pickupMultiplier > 1) {
+      const rare = pickupMultiplier === 3;
+      const label = "NEXT PICKUP ×" + pickupMultiplier;
+      ctx.save();
+      ctx.font = "900 9px system-ui, sans-serif";
+      const w = ctx.measureText(label).width + 14;
+      roundedRectPath(ctx, lead.x - w / 2, lead.y - 43, w, 20, 8);
+      ctx.fillStyle = rare ? "rgba(126,34,206,.92)" : "rgba(180,83,9,.94)";
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, lead.x, lead.y - 33);
+      ctx.restore();
+    }
+
+    gameEffects = gameEffects.filter((effect) => now - effect.createdAt < effect.duration);
+    let stack = pickupMultiplier > 1 ? 56 : 34;
+
+    for (const effect of gameEffects) {
+      const age = now - effect.createdAt;
+      const progress = Math.max(0, Math.min(1, age / effect.duration));
+      const rise = 18 * progress;
+      const alpha = 1 - progress;
+      const scale = 1 + Math.sin(progress * Math.PI) * .16;
+      const color = effect.kind === "rare"
+        ? "#a855f7"
+        : effect.kind === "bonus"
+          ? "#f59f00"
+          : "#087f5b";
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(lead.x, lead.y - stack - rise);
+      ctx.scale(scale, scale);
+      ctx.font = "900 13px system-ui, sans-serif";
+      const w = ctx.measureText(effect.text).width + 16;
+      roundedRectPath(ctx, -w / 2, -12, w, 24, 9);
+      ctx.fillStyle = "rgba(16,17,20,.90)";
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(effect.text, 0, 0);
+      ctx.restore();
+
+      stack += 29;
+    }
+  }
+
   function drawYouMarker(poses) {
     if (!poses.length) return;
     const lead = poses[0];
@@ -2705,6 +2891,7 @@
   }
 
   function drawFrame(poses) {
+    const now = performance.now();
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#f1eee5";
     ctx.fillRect(0, 0, W, H);
@@ -2715,6 +2902,7 @@
     for (const node of nodes.values()) drawNode(node);
     drawBlockedEdge();
     drawChallengeZone();
+    drawChallengeArrow();
     drawSwitchPreview();
     drawPickups();
 
@@ -2724,6 +2912,7 @@
       drawStreetcar(poses[i], i, false);
     }
     drawYouMarker(poses);
+    drawGameEffects(poses, now);
 
     drawMinimap(poses);
   }
