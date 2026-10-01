@@ -1287,6 +1287,7 @@
   let pinchStartDistance = 0;
   let pinchStartZoomFactor = 1;
   let canvasPinching = false;
+  let terminalCollisionGraceM = 0;
   let audioCtx = null;
   let gameMode = "free";
   let operatorMode = "arcade";
@@ -1872,6 +1873,7 @@
     nextChallengeAt = Infinity;
     pickupMultiplier = 1;
     gameEffects = [];
+    terminalCollisionGraceM = 0;
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
     speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
@@ -1928,6 +1930,7 @@
     nextChallengeAt = performance.now() + 18000 + Math.random() * 14000;
     pickupMultiplier = 1;
     gameEffects = [];
+    terminalCollisionGraceM = 0;
     missionsCompleted = Number(checkpoint.mc) || 0;
     firstPickupCollected = true;
     runStartedAt = 0;
@@ -2225,9 +2228,17 @@
       const a = a0 + delta * (i / 8);
       appendTrailPoint(node.x + Math.cos(a) * radius, node.y + Math.sin(a) * radius);
     }
+
+    // A full-size 30 m car geometrically sweeps across the simplified loop even
+    // though a real terminal uses dedicated loop/return track. Ignore only that
+    // unavoidable model artifact, and only until the lead car has cleared it.
+    terminalCollisionGraceM = Math.max(terminalCollisionGraceM, CAR_LENGTH_M * 2.2);
   }
 
   function advanceHead(distance) {
+    if (terminalCollisionGraceM > 0) {
+      terminalCollisionGraceM = Math.max(0, terminalCollisionGraceM - distance);
+    }
     let remaining = distance;
     let guard = 0;
 
@@ -2435,6 +2446,10 @@
   }
 
   function checkSelfCollision(poses) {
+    if (terminalCollisionGraceM > 0) {
+      collisionFrames = 0;
+      return false;
+    }
     if (trainCars < 6 || poses.length < 6) {
       collisionFrames = 0;
       return false;
