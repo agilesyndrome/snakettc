@@ -1061,6 +1061,7 @@
   let runStartedAt = 0;
   let openingAssistPlacedAt = 0;
   let lastPacePickupAt = 0;
+  let collisionFrames = 0;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1419,6 +1420,7 @@
     runStartedAt = 0;
     openingAssistPlacedAt = 0;
     lastPacePickupAt = 0;
+    collisionFrames = 0;
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
     speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
@@ -1689,8 +1691,11 @@
   function getTrainPoses() {
     if (!trail.length) return [];
     if (trail.length - trailStart === 1) {
-      return Array.from({ length: trainCars }, () => ({
-        x: trail[trailStart].x, y: trail[trailStart].y, angle: 0,
+      return Array.from({ length: trainCars }, (_, index) => ({
+        x: trail[trailStart].x,
+        y: trail[trailStart].y,
+        angle: 0,
+        placed: index === 0,
       }));
     }
 
@@ -1702,7 +1707,12 @@
 
       if (wanted <= trail[trailStart].d) {
         const oldest = trail[trailStart];
-        poses.push({ x: oldest.x, y: oldest.y, angle: poses.at(-1)?.angle || 0 });
+        poses.push({
+          x: oldest.x,
+          y: oldest.y,
+          angle: poses.at(-1)?.angle || 0,
+          placed: false,
+        });
         continue;
       }
 
@@ -1715,6 +1725,7 @@
         x: older.x + (newer.x - older.x) * t,
         y: older.y + (newer.y - older.y) * t,
         angle: Math.atan2(newer.y - older.y, newer.x - older.x),
+        placed: true,
       });
     }
 
@@ -1809,15 +1820,29 @@
   }
 
   function checkSelfCollision(poses) {
-    if (trainCars < 6 || poses.length < 6) return false;
-    const lead = capsuleAxis(poses[0]);
-
-    // Each car is treated as a narrow capsule, much closer to the real Flexity
-    // footprint than the old centre-point collision radius.
-    for (let i = 5; i < poses.length; i++) {
-      if (segmentDistance(lead, capsuleAxis(poses[i])) < 3.4) return true;
+    if (trainCars < 6 || poses.length < 6) {
+      collisionFrames = 0;
+      return false;
     }
-    return false;
+
+    const lead = capsuleAxis(poses[0]);
+    let touching = false;
+
+    // A newly lengthened train can temporarily have more cars than recorded
+    // trail behind it. Those tail entries are layout placeholders, not physical
+    // cars, and must never participate in collision detection.
+    for (let i = 5; i < poses.length; i++) {
+      if (poses[i].placed === false) continue;
+      if (segmentDistance(lead, capsuleAxis(poses[i])) < 2.5) {
+        touching = true;
+        break;
+      }
+    }
+
+    // A one-frame overlap can happen from interpolation at complex special work.
+    // Require sustained contact before declaring a real self-collision.
+    collisionFrames = touching ? collisionFrames + 1 : 0;
+    return collisionFrames >= 2;
   }
 
   function startChaos(t) {
@@ -2304,7 +2329,10 @@
     drawPickups();
 
     // Draw tail first so the lead car remains visually dominant.
-    for (let i = poses.length - 1; i >= 0; i--) drawStreetcar(poses[i], i, false);
+    for (let i = poses.length - 1; i >= 0; i--) {
+      if (poses[i].placed === false) continue;
+      drawStreetcar(poses[i], i, false);
+    }
     drawYouMarker(poses);
 
     drawMinimap(poses);
@@ -2356,9 +2384,19 @@
       maintainPickupDensity(t);
       updateChaos(t);
       const effectiveKph = updateSpeed(dt);
-      advanceHead((effectiveKph / 3.6) * dt);
-      addTrailSample();
-      checkPickups();
+      let frameDistance = (effectiveKph / 3.6) * dt;
+
+      // At extreme speed, sampling only once per animation frame turns bends
+      // into long diagonal chords. Substep along the rail so the stored tail
+      // follows the actual track geometry instead of cutting corners.
+      const maxStep = 3.5;
+      while (frameDistance > 0) {
+        const step = Math.min(maxStep, frameDistance);
+        advanceHead(step);
+        addTrailSample();
+        checkPickups();
+        frameDistance -= step;
+      }
       updateSwitchPanel();
       if (t - lastLocationHudAt > 220) {
         updateLocationHud();
