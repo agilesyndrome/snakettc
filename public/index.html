@@ -575,7 +575,7 @@
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
-  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Rogue Operator is intentionally fictional overdrive up to 180 km/h.</p>
+  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 999 km/h. At that point Transit Control has no jurisdiction over your soul.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -585,7 +585,7 @@
     <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
     <p>Collect glowing Flexitys. Your first one is dispatched onto the track ahead so the run gets moving immediately; later cars spread across the network. Every pickup adds another full 30.20 m streetcar to your train.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
-    <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Rogue</strong> is gloriously irresponsible.</p>
+    <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 999 km/h because apparently the rails are merely a suggestion.</p>
     <div class="mode-picker">
       <div class="mode-field">
         <label for="gameModeSelect">Game mode</label>
@@ -599,7 +599,7 @@
         <select id="operatorModeSelect">
           <option value="arcade" selected>Arcade — fast &amp; fun (120 km/h cap)</option>
           <option value="realistic">Realistic / Purist — 50 km/h cap</option>
-          <option value="rogue">Rogue Operator — 180 km/h overdrive</option>
+          <option value="rogue">Airplane Mode — 999 km/h, good luck</option>
         </select>
       </div>
     </div>
@@ -625,11 +625,11 @@
   const REALISTIC_GOVERNOR_KPH = 50;
   const ARCADE_GOVERNOR_KPH = 120;
   const FLEXITY_RATED_MAX_KPH = 70;
-  const ROGUE_GAME_MAX_KPH = 180; // Deliberately fictional overdrive beyond 70 km/h.
+  const ROGUE_GAME_MAX_KPH = 999; // Airplane Mode: gloriously fictional.
   const MODE_START_SPEED_KPH = {
     realistic: 50,
     arcade: 90,
-    rogue: 110,
+    rogue: 180,
   };
   const PICKUP_COUNT = 8;
   const OPENING_PICKUP_SECONDS_AHEAD = 6.5;
@@ -2171,13 +2171,13 @@
 
   function slowOrderCapKph() {
     if (operatorMode === "realistic") return 25;
-    if (operatorMode === "rogue") return 80;
+    if (operatorMode === "rogue") return 250;
     return 60;
   }
 
   function updateSpeed(dt) {
-    const accelRate = operatorMode === "realistic" ? 34 : operatorMode === "rogue" ? 105 : 75;
-    const brakeRate = operatorMode === "realistic" ? 58 : 110;
+    const accelRate = operatorMode === "realistic" ? 34 : operatorMode === "rogue" ? 360 : 75;
+    const brakeRate = operatorMode === "realistic" ? 58 : operatorMode === "rogue" ? 420 : 110;
     if (acceleratorHeld) speedKph += accelRate * dt;
     if (brakeHeld) speedKph -= brakeRate * dt;
     speedKph = Math.max(0, Math.min(speedCapKph(), speedKph));
@@ -2185,7 +2185,7 @@
     // Arcade keeps the "slow order" idea without reducing a game to walking pace.
     const effective = chaos?.type === "slow" ? Math.min(speedKph, slowOrderCapKph()) : speedKph;
     speedStat.textContent = String(Math.round(effective));
-    speedStat.style.color = effective > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
+    speedStat.style.color = effective >= 500 ? "#ffd43b" : effective > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
     return effective;
   }
 
@@ -2297,7 +2297,7 @@
     const feel = operatorModeSelect.value === "realistic"
       ? " • Realistic"
       : operatorModeSelect.value === "rogue"
-        ? " • Rogue"
+        ? " • Airplane"
         : " • Arcade";
     startBtn.textContent = "Depart: " + label + feel;
   }
