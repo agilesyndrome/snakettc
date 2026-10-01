@@ -345,39 +345,177 @@
   #eventBanner[hidden] { display: none; }
 
   @media (max-width: 760px) {
-    .hud { grid-template-columns: repeat(5, minmax(58px, 1fr)); right: 12px; }
-    .brand { min-height: 66px; padding-right: 195px; }
-    .brand small { max-width: 320px; }
-    .stat { min-width: 0; }
+    .hud {
+      grid-template-columns: repeat(3, minmax(62px, auto));
+      right: auto;
+      gap: 5px;
+    }
+    .brand { min-height: 0; padding: 8px 10px; }
+    .brand small { display: none; }
+    .stat { min-width: 0; padding: 6px 9px; }
     .stat b { font-size: 16px; }
-    #minimap { width: 175px; height: 110px; }
-    #dpad { transform: scale(.92); transform-origin: bottom right; }
+    #minimap { width: 150px; height: 88px; min-width: 0; min-height: 0; }
+    #dpad { transform: scale(.90); transform-origin: bottom right; }
     #switchPanel { width: min(330px, calc(100vw - 190px)); }
   }
 
   @media (max-width: 540px) {
-    #minimap { top: 10px; left: 10px; right: auto; width: calc(100vw - 20px); height: 105px; }
-    .mini-label { top: 16px; left: 20px; right: auto; }
-    .hud { top: 122px; }
-    .brand { padding-right: 10px; }
-    .brand strong { font-size: 16px; }
-    .brand small { max-width: none; }
-    .tip { display: none; }
-    #dpad { transform: scale(.86); }
-    #switchPanel {
-      left: 10px;
-      right: 10px;
-      bottom: 190px;
+    /* Mobile is a separate cockpit, not a squeezed desktop HUD. */
+    .hud {
+      left: max(8px, env(safe-area-inset-left));
+      top: max(8px, env(safe-area-inset-top));
+      width: calc(100vw - 166px);
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .brand {
+      grid-column: 1 / -1;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .brand .badge {
+      min-width: 34px;
+      height: 26px;
+      margin-right: 7px;
+      padding: 0 5px;
+      font-size: 15px;
+    }
+    .brand strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      letter-spacing: -.01em;
+    }
+
+    /* Keep only the information needed while driving. */
+    .stat-cars, .stat-length { display: none; }
+    .stat { height: 43px; }
+    .stat b { font-size: 15px; }
+    .stat span { margin-top: 1px; font-size: 7px; }
+    .stat-speed b { color: #ffb8bb; }
+
+    #locationHud {
+      position: fixed;
+      z-index: 6;
+      left: max(8px, env(safe-area-inset-left));
+      right: max(8px, env(safe-area-inset-right));
+      top: calc(max(8px, env(safe-area-inset-top)) + 96px);
       width: auto;
+      max-width: none;
+      padding: 6px 9px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 9px;
+      border-radius: 8px;
+    }
+
+    #minimap {
+      top: max(8px, env(safe-area-inset-top));
+      right: max(8px, env(safe-area-inset-right));
+      left: auto;
+      width: 150px;
+      height: 94px;
+      border-radius: 10px;
+    }
+    .mini-label {
+      top: calc(max(8px, env(safe-area-inset-top)) + 5px);
+      right: calc(max(8px, env(safe-area-inset-right)) + 7px);
+      left: auto;
+      font-size: 7px;
+    }
+
+    .tip { display: none; }
+
+    #missionHud {
+      position: fixed;
+      z-index: 6;
+      left: max(8px, env(safe-area-inset-left));
+      right: max(8px, env(safe-area-inset-right));
+      top: calc(max(8px, env(safe-area-inset-top)) + 126px);
+      width: auto;
+      max-width: none;
+      padding: 5px 7px;
+      border-radius: 8px;
+    }
+    #missionRoute { min-width: 46px; padding: 3px 5px; font-size: 12px; }
+    #missionText b { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #missionText span { display: none; }
+
+    #eventBanner {
+      top: calc(max(8px, env(safe-area-inset-top)) + 132px);
+      width: calc(100vw - 28px);
+      max-width: none;
+      padding: 7px 10px;
+      border-radius: 10px;
+      font-size: 9px;
+      line-height: 1.25;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+    #eventBanner[hidden] { display: none; }
+
+    #dpad {
+      right: max(10px, env(safe-area-inset-right));
+      bottom: max(10px, env(safe-area-inset-bottom));
+      width: 140px;
+      height: 140px;
+      grid-template: repeat(3, 44px) / repeat(3, 44px);
+      gap: 4px;
       transform: none;
     }
-    #eventBanner { top: 256px; }
-    #speedControls {
-      bottom: 14px;
-      grid-template-columns: 76px 76px;
+    .control {
+      border-radius: 13px;
+      font-size: 21px;
     }
-    .pedal { min-height: 46px; }
+    .pause { font-size: 13px; }
+
+    #speedControls {
+      left: max(10px, env(safe-area-inset-left));
+      bottom: max(10px, env(safe-area-inset-bottom));
+      grid-template-columns: 64px 64px;
+      gap: 6px;
+    }
+    .pedal {
+      width: 64px;
+      min-height: 52px;
+      padding: 4px;
+      border-radius: 13px;
+      font-size: 10px;
+    }
+    .pedal small { display: none; }
+
+    #switchPanel {
+      left: 8px;
+      right: 8px;
+      bottom: calc(max(10px, env(safe-area-inset-bottom)) + 150px);
+      width: auto;
+      padding: 6px;
+      transform: none;
+      border-radius: 10px;
+    }
+    #switchTitle { display: none; }
+    #switchMeta { margin: 0; font-size: 9px; }
+    #switchChoices { margin-top: 5px; gap: 4px; }
+    .switch-choice { padding: 7px 4px; font-size: 9px; }
+
+    #aboutBtn { display: none; }
+
     .mode-picker { grid-template-columns: 1fr; }
+    .card {
+      width: min(420px, calc(100vw - 20px));
+      padding: 17px;
+      max-height: calc(100dvh - 28px);
+      overflow: auto;
+    }
+    .card p { font-size: 12px; }
+    .card .big { font-size: 16px; }
   }
 </style>
 </head>
@@ -391,11 +529,11 @@
     <span class="badge">∞</span><strong>TTC STREETCAR SNAKE</strong>
     <small>2026 network-inspired geometry • every Flexity is 30.20 m long in world scale</small>
   </div>
-  <div class="stat"><b id="carsStat">1</b><span>train cars</span></div>
-  <div class="stat"><b id="joinedStat">0</b><span>joined</span></div>
-  <div class="stat"><b id="bestStat">0</b><span>high score</span></div>
-  <div class="stat"><b id="lengthStat">30 m</b><span>train length</span></div>
-  <div class="stat"><b id="speedStat">50</b><span>km/h</span></div>
+  <div class="stat stat-cars"><b id="carsStat">1</b><span>cars</span></div>
+  <div class="stat stat-joined"><b id="joinedStat">0</b><span>joined</span></div>
+  <div class="stat stat-best"><b id="bestStat">0</b><span>best</span></div>
+  <div class="stat stat-length"><b id="lengthStat">30 m</b><span>length</span></div>
+  <div class="stat stat-speed"><b id="speedStat">90</b><span>km/h</span></div>
   <div id="locationHud"><strong>YOU ARE NEAR:</strong> finding the rails…</div>
   <div class="tip" id="tip">Arrow keys / WASD steer. Q / E / R throw switches. Hold + to accelerate, − to brake. Space or P pauses.</div>
   <div id="missionHud" aria-live="polite">
@@ -437,7 +575,7 @@
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
-  <p><strong>Speed:</strong> Normal Operator is governed to 50 km/h for playability. The real Flexity vehicle is rated to a 70 km/h maximum. Rogue Operator removes the game governor and allows intentionally fictional over-speed beyond 70 km/h.</p>
+  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Rogue Operator is intentionally fictional overdrive up to 180 km/h.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -456,10 +594,11 @@
         </select>
       </div>
       <div class="mode-field">
-        <label for="operatorModeSelect">Operator</label>
+        <label for="operatorModeSelect">Driving feel</label>
         <select id="operatorModeSelect">
-          <option value="normal">Normal — governed to 50 km/h</option>
-          <option value="rogue">Rogue Operator — governor removed</option>
+          <option value="arcade" selected>Arcade — fast &amp; fun (120 km/h cap)</option>
+          <option value="realistic">Realistic / Purist — 50 km/h cap</option>
+          <option value="rogue">Rogue Operator — 180 km/h overdrive</option>
         </select>
       </div>
     </div>
@@ -482,10 +621,15 @@
   const CAR_WIDTH_M = 2.54;
   const COUPLER_GAP_M = 1.50;
   const CAR_SPACING_M = CAR_LENGTH_M + COUPLER_GAP_M;
-  const NORMAL_GOVERNOR_KPH = 50;
+  const REALISTIC_GOVERNOR_KPH = 50;
+  const ARCADE_GOVERNOR_KPH = 120;
   const FLEXITY_RATED_MAX_KPH = 70;
-  const ROGUE_GAME_MAX_KPH = 140; // Deliberately fictional overdrive beyond 70 km/h.
-  const START_SPEED_KPH = 50;
+  const ROGUE_GAME_MAX_KPH = 180; // Deliberately fictional overdrive beyond 70 km/h.
+  const MODE_START_SPEED_KPH = {
+    realistic: 50,
+    arcade: 90,
+    rogue: 110,
+  };
   const PICKUP_COUNT = 8;
   const REF_LAT = 43.6500;
   const REF_LON = -79.3900;
@@ -901,11 +1045,11 @@
   let trailStart = 0;
   let trailDistance = 0;
   let head = null;
-  let camera = { x: 0, y: 0, scale: 0.7 };
+  let camera = { x: 0, y: 0, scale: 0.9 };
   let audioCtx = null;
   let gameMode = "free";
-  let operatorMode = "normal";
-  let speedKph = START_SPEED_KPH;
+  let operatorMode = "arcade";
+  let speedKph = MODE_START_SPEED_KPH.arcade;
   let acceleratorHeld = false;
   let brakeHeld = false;
   let currentMission = null;
@@ -1066,7 +1210,7 @@
     missionsCompleted = 0;
     gameMode = gameModeSelect.value;
     operatorMode = operatorModeSelect.value;
-    speedKph = START_SPEED_KPH;
+    speedKph = MODE_START_SPEED_KPH[operatorMode] ?? MODE_START_SPEED_KPH.arcade;
     acceleratorHeld = false;
     brakeHeld = false;
     currentMission = null;
@@ -1455,8 +1599,9 @@
     const type = choices[Math.floor(Math.random() * choices.length)];
 
     if (type === "slow") {
-      chaos = { type, until: t + 16000 };
-      eventBanner.textContent = "TRANSIT CONTROL: slow order — 25 km/h for 16 seconds.";
+      chaos = { type, until: t + 12000 };
+      eventBanner.textContent = "TRANSIT CONTROL: slow order — " +
+        slowOrderCapKph() + " km/h for 12 seconds.";
     } else {
       const options = edges.filter((edge) =>
         edge !== head.edge && !edge.tags.includes("yard") && edge.len > 120
@@ -1465,8 +1610,8 @@
       if (!edge) return;
       blockedEdgeId = edge.id;
       chaos = { type, until: t + 19000, edgeId: edge.id };
-      eventBanner.textContent = "SERVICE ADVISORY: stalled streetcar blocks " +
-        nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + ". Divert!";
+      eventBanner.textContent = "STALLED CAR: " +
+        nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + " blocked — divert.";
     }
 
     eventBanner.hidden = false;
@@ -1519,16 +1664,30 @@
 
   function updateCamera(poses) {
     const headPose = poses[0];
+    if (!headPose) return;
     const tailPose = poses[poses.length - 1] || headPose;
-    const targetX = headPose.x * 0.64 + tailPose.x * 0.36;
-    const targetY = headPose.y * 0.64 + tailPose.y * 0.36;
-    const desiredViewWidth = Math.max(1050, totalTrainLength() * 1.42);
-    const mobileBoost = W < 600 ? 1.18 : 1;
-    const targetScale = Math.max(0.20, Math.min(1.05, W / (desiredViewWidth * mobileBoost)));
+    const mobile = W < 600;
 
-    camera.x += (targetX - camera.x) * 0.08;
-    camera.y += (targetY - camera.y) * 0.08;
-    camera.scale += (targetScale - camera.scale) * 0.06;
+    // Keep a short train close enough that motion reads as motion. The previous
+    // ~1 km minimum view width made 100+ km/h look oddly sedate on phones.
+    const baseViewWidth = mobile ? 500 : 820;
+    const desiredViewWidth = Math.max(baseViewWidth, totalTrainLength() * 1.38);
+    const maxScale = mobile ? 0.92 : 1.28;
+    const targetScale = Math.max(0.20, Math.min(maxScale, W / desiredViewWidth));
+
+    // Look a little ahead of the car so high speed feels directional while the
+    // tail still influences framing as the consist gets absurdly long.
+    const speedFactor = Math.min(1, speedKph / 120);
+    const lookAhead = (mobile ? 65 : 95) * speedFactor;
+    const headWeight = totalTrainLength() < 300 ? 0.82 : 0.70;
+    const targetX = headPose.x * headWeight + tailPose.x * (1 - headWeight) +
+      head.headingX * lookAhead;
+    const targetY = headPose.y * headWeight + tailPose.y * (1 - headWeight) +
+      head.headingY * lookAhead;
+
+    camera.x += (targetX - camera.x) * 0.10;
+    camera.y += (targetY - camera.y) * 0.10;
+    camera.scale += (targetScale - camera.scale) * 0.09;
   }
 
   function drawWater() {
@@ -1747,11 +1906,13 @@
     }
 
     if (mW >= 180) {
-      const miniLabels = [
-        ["Long Branch", "longBranch"], ["Dundas W", "dundasWest"],
-        ["Union", "union"], ["Broadview", "broadviewStation"],
-        ["Main", "mainStation"], ["Neville", "neville"], ["Gunns", "gunns"],
-      ];
+      const miniLabels = W < 600
+        ? [["Long Br", "longBranch"], ["Union", "union"], ["Main", "mainStation"], ["Gunns", "gunns"]]
+        : [
+            ["Long Branch", "longBranch"], ["Dundas W", "dundasWest"],
+            ["Union", "union"], ["Broadview", "broadviewStation"],
+            ["Main", "mainStation"], ["Neville", "neville"], ["Gunns", "gunns"],
+          ];
       mctx.font = "700 7px system-ui, sans-serif";
       mctx.fillStyle = "rgba(40,44,48,.72)";
       mctx.textAlign = "center";
@@ -1845,11 +2006,13 @@
     ctx.arc(p.x, p.y, pulse, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = "rgba(16,17,20,.88)";
-    ctx.font = "900 8px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText("YOU", p.x, p.y - pulse - 3);
+    if (W >= 600) {
+      ctx.fillStyle = "rgba(16,17,20,.88)";
+      ctx.font = "900 8px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("YOU", p.x, p.y - pulse - 3);
+    }
     ctx.restore();
   }
 
@@ -1878,17 +2041,26 @@
   // -------------------------------------------------------------------------
 
   function speedCapKph() {
-    return operatorMode === "rogue" ? ROGUE_GAME_MAX_KPH : NORMAL_GOVERNOR_KPH;
+    if (operatorMode === "realistic") return REALISTIC_GOVERNOR_KPH;
+    if (operatorMode === "rogue") return ROGUE_GAME_MAX_KPH;
+    return ARCADE_GOVERNOR_KPH;
+  }
+
+  function slowOrderCapKph() {
+    if (operatorMode === "realistic") return 25;
+    if (operatorMode === "rogue") return 80;
+    return 60;
   }
 
   function updateSpeed(dt) {
-    if (acceleratorHeld) speedKph += 30 * dt;
-    if (brakeHeld) speedKph -= 48 * dt;
+    const accelRate = operatorMode === "realistic" ? 34 : operatorMode === "rogue" ? 105 : 75;
+    const brakeRate = operatorMode === "realistic" ? 58 : 110;
+    if (acceleratorHeld) speedKph += accelRate * dt;
+    if (brakeHeld) speedKph -= brakeRate * dt;
     speedKph = Math.max(0, Math.min(speedCapKph(), speedKph));
 
-    // A slow order overrides the operator controls without permanently changing
-    // the selected speed; once cleared the car can accelerate again.
-    const effective = chaos?.type === "slow" ? Math.min(speedKph, 25) : speedKph;
+    // Arcade keeps the "slow order" idea without reducing a game to walking pace.
+    const effective = chaos?.type === "slow" ? Math.min(speedKph, slowOrderCapKph()) : speedKph;
     speedStat.textContent = String(Math.round(effective));
     speedStat.style.color = effective > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
     return effective;
@@ -1998,8 +2170,12 @@
 
   function updateStartButton() {
     const label = gameModeSelect.value === "mission" ? "Route Mission" : "Free Play";
-    const rogue = operatorModeSelect.value === "rogue" ? " • Rogue Operator" : "";
-    startBtn.textContent = "Depart: " + label + rogue;
+    const feel = operatorModeSelect.value === "realistic"
+      ? " • Realistic"
+      : operatorModeSelect.value === "rogue"
+        ? " • Rogue"
+        : " • Arcade";
+    startBtn.textContent = "Depart: " + label + feel;
   }
   gameModeSelect.addEventListener("change", updateStartButton);
   operatorModeSelect.addEventListener("change", updateStartButton);
