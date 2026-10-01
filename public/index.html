@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no" />
 <meta name="theme-color" content="#d71920" />
 <title>TTC Streetcar Snake</title>
 <meta name="application-name" content="TTC Streetcar Snake" />
@@ -741,6 +741,8 @@
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
   <p><strong>Speed:</strong> Arcade is the default: 180 km/h departure speed with intentionally fictional overdrive up to 2000 km/h. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum.</p>
+  <p><strong>Track model:</strong> each mapped street corridor now renders directional virtual rails a few metres apart. Simplified degree-1 endpoints behave like terminal loops, so turning back does not make the outbound car occupy the same rail as its inbound tail.</p>
+  <p><strong>Touch:</strong> pinch the game map to zoom the camera. Safari page zoom is suppressed during play so the brake and accelerator stay where your thumbs left them.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -805,6 +807,10 @@
   const CAR_WIDTH_M = 2.54;
   const COUPLER_GAP_M = 1.50;
   const CAR_SPACING_M = CAR_LENGTH_M + COUPLER_GAP_M;
+  // The map stores a street corridor centreline. Render each travel direction
+  // on its own virtual rail so terminal turnbacks do not drive straight through
+  // the inbound consist.
+  const TRACK_LANE_OFFSET_M = 3.2;
   const REALISTIC_GOVERNOR_KPH = 50;
   const ARCADE_GOVERNOR_KPH = 2000; // Arcade: geography is now optional.
   const FLEXITY_RATED_MAX_KPH = 70;
@@ -1203,6 +1209,16 @@
     return { x, y, angle };
   }
 
+  function lanePointAt(edge, s, dir) {
+    const p = pointAt(edge, s);
+    const travelAngle = p.angle + (dir < 0 ? Math.PI : 0);
+    return {
+      x: p.x - Math.sin(travelAngle) * TRACK_LANE_OFFSET_M,
+      y: p.y + Math.cos(travelAngle) * TRACK_LANE_OFFSET_M,
+      angle: travelAngle,
+    };
+  }
+
   function outgoingVector(edge, nodeId) {
     const eps = Math.min(12, edge.len * 0.2);
     if (edge.a === nodeId) {
@@ -1267,6 +1283,10 @@
   let trailDistance = 0;
   let head = null;
   let camera = { x: 0, y: 0, scale: 0.9 };
+  let cameraZoomFactor = 1;
+  let pinchStartDistance = 0;
+  let pinchStartZoomFactor = 1;
+  let canvasPinching = false;
   let audioCtx = null;
   let gameMode = "free";
   let operatorMode = "arcade";
@@ -1874,10 +1894,12 @@
     }
 
     const p = pointAt(head.edge, head.s);
-    trail.push({ x: p.x, y: p.y, d: 0 });
-    camera.x = p.x;
-    camera.y = p.y;
+    const laneP = lanePointAt(head.edge, head.s, head.dir);
+    trail.push({ x: laneP.x, y: laneP.y, d: 0 });
+    camera.x = laneP.x;
+    camera.y = laneP.y;
     camera.scale = 0.7;
+    cameraZoomFactor = 1;
 
     chaos = null;
     blockedEdgeId = null;
@@ -1965,19 +1987,22 @@
         trail.push({ x: point.x, y: point.y, d: trailDistance });
       }
 
+      const laneP = lanePointAt(edge, sOnEdge, dir);
       const last = trail[trail.length - 1];
-      const finalGap = Math.hypot(hp.x - last.x, hp.y - last.y);
+      const finalGap = Math.hypot(laneP.x - last.x, laneP.y - last.y);
       if (finalGap > 0.1) {
         trailDistance += finalGap;
-        trail.push({ x: hp.x, y: hp.y, d: trailDistance });
+        trail.push({ x: laneP.x, y: laneP.y, d: trailDistance });
       }
     } else {
-      trail.push({ x: hp.x, y: hp.y, d: 0 });
+      const laneP = lanePointAt(edge, sOnEdge, dir);
+      trail.push({ x: laneP.x, y: laneP.y, d: 0 });
     }
 
     camera.x = hp.x;
     camera.y = hp.y;
     camera.scale = 0.7;
+    cameraZoomFactor = 1;
 
     chaos = null;
     blockedEdgeId = null;
@@ -2162,6 +2187,46 @@
     ).join("");
   }
 
+  function appendTrailPoint(x, y) {
+    const last = trail[trail.length - 1];
+    if (!last) {
+      trail.push({ x, y, d: trailDistance });
+      return;
+    }
+    const seg = Math.hypot(x - last.x, y - last.y);
+    if (seg < 0.25) return;
+    trailDistance += seg;
+    trail.push({ x, y, d: trailDistance });
+  }
+
+  function addTerminalTurnaround(nodeId, edge, incomingDir, outgoingDir) {
+    // Degree-1 nodes are simplified terminal loops in this map. Connect the
+    // inbound virtual rail to the outbound rail with a small semicircular loop
+    // instead of teleporting across the corridor or retracing the same rail.
+    const incident = adjacency.get(nodeId) || [];
+    if (incident.length !== 1 || edge !== incident[0] || incomingDir === outgoingDir) return;
+
+    const node = nodes.get(nodeId);
+    const inbound = lanePointAt(edge, incomingDir > 0 ? edge.len : 0, incomingDir);
+    const outbound = lanePointAt(edge, outgoingDir > 0 ? 0 : edge.len, outgoingDir);
+
+    // The two lane points sit on opposite sides of the centreline. Sweep a
+    // half-circle around the terminal node; 8 samples are enough to keep the
+    // long-train geometry smooth without pretending this is survey-grade track.
+    let a0 = Math.atan2(inbound.y - node.y, inbound.x - node.x);
+    let a1 = Math.atan2(outbound.y - node.y, outbound.x - node.x);
+    let delta = a1 - a0;
+    while (delta <= -Math.PI) delta += Math.PI * 2;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    if (Math.abs(delta) < Math.PI * 0.75) delta = delta >= 0 ? Math.PI : -Math.PI;
+
+    const radius = Math.max(TRACK_LANE_OFFSET_M, Math.hypot(inbound.x - node.x, inbound.y - node.y));
+    for (let i = 1; i <= 8; i++) {
+      const a = a0 + delta * (i / 8);
+      appendTrailPoint(node.x + Math.cos(a) * radius, node.y + Math.sin(a) * radius);
+    }
+  }
+
   function advanceHead(distance) {
     let remaining = distance;
     let guard = 0;
@@ -2184,8 +2249,14 @@
       remaining -= available;
       const nodeId = towardEnd ? head.edge.b : head.edge.a;
       handleNodeArrival(nodeId);
-      const next = chooseNextEdge(nodeId, head.edge);
+      const previousEdge = head.edge;
+      const previousDir = head.dir;
+      const next = chooseNextEdge(nodeId, previousEdge);
       if (!next) break;
+
+      if (next.edge === previousEdge && next.dir !== previousDir) {
+        addTerminalTurnaround(nodeId, previousEdge, previousDir, next.dir);
+      }
 
       head.edge = next.edge;
       head.dir = next.dir;
@@ -2196,7 +2267,7 @@
   }
 
   function addTrailSample() {
-    const p = pointAt(head.edge, head.s);
+    const p = lanePointAt(head.edge, head.s, head.dir);
     const last = trail[trail.length - 1];
     if (!last) {
       trail.push({ x: p.x, y: p.y, d: trailDistance });
@@ -2482,7 +2553,8 @@
     const baseViewWidth = mobile ? 500 : 820;
     const desiredViewWidth = Math.max(baseViewWidth, totalTrainLength() * 1.38);
     const maxScale = mobile ? 0.92 : 1.28;
-    const targetScale = Math.max(0.20, Math.min(maxScale, W / desiredViewWidth));
+    const fitScale = Math.max(0.20, Math.min(maxScale, W / desiredViewWidth));
+    const targetScale = Math.max(0.12, Math.min(2.8, fitScale * cameraZoomFactor));
 
     // Look a little ahead of the car so high speed feels directional while the
     // tail still influences framing as the consist gets absurdly long.
@@ -3143,6 +3215,50 @@
   // -------------------------------------------------------------------------
   // Input
   // -------------------------------------------------------------------------
+
+  function touchDistance(touches) {
+    if (!touches || touches.length < 2) return 0;
+    const a = touches[0];
+    const b = touches[1];
+    return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+  }
+
+  canvas.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 2 || !running || dead) return;
+    event.preventDefault();
+    canvasPinching = true;
+    pinchStartDistance = touchDistance(event.touches);
+    pinchStartZoomFactor = cameraZoomFactor;
+  }, { passive: false });
+
+  canvas.addEventListener("touchmove", (event) => {
+    if (!canvasPinching || event.touches.length !== 2 || !running || dead) return;
+    event.preventDefault();
+    const distance = touchDistance(event.touches);
+    if (pinchStartDistance <= 0 || distance <= 0) return;
+    const ratio = distance / pinchStartDistance;
+    cameraZoomFactor = Math.max(0.45, Math.min(3.0, pinchStartZoomFactor * ratio));
+  }, { passive: false });
+
+  canvas.addEventListener("touchend", (event) => {
+    if (event.touches.length < 2) canvasPinching = false;
+  }, { passive: false });
+
+  canvas.addEventListener("touchcancel", () => {
+    canvasPinching = false;
+  }, { passive: false });
+
+  // iOS exposes a separate gesture event family for page magnification. While
+  // playing, consume it so Safari never scales the UI chrome instead of the map.
+  for (const gestureEvent of ["gesturestart", "gesturechange", "gestureend"]) {
+    document.addEventListener(gestureEvent, (event) => {
+      if (running && !dead) event.preventDefault();
+    }, { passive: false });
+  }
+
+  document.addEventListener("touchmove", (event) => {
+    if (running && !dead && event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
 
   addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
