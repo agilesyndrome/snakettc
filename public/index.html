@@ -180,6 +180,12 @@
     font: 800 15px system-ui, sans-serif;
     cursor: pointer;
   }
+  #startBtn, #resumeBtn { width: 100%; }
+  #resumeBtn {
+    display: none;
+    background: #087f5b;
+  }
+  #resumeBtn.show { display: block; }
 
   .mode-picker {
     display: grid;
@@ -570,7 +576,8 @@
       </div>
     </div>
     <label class="sound-option"><input id="muteSounds" type="checkbox" /> Mute sounds</label>
-    <button id="startBtn">Depart: Free Play</button>
+    <button id="resumeBtn">Resume</button>
+    <button id="startBtn">Begin new game — Free Play • Arcade</button>
   </div>
 </div>
 
@@ -619,6 +626,7 @@
   const tip = document.getElementById("tip");
   const overlay = document.getElementById("overlay");
   const startBtn = document.getElementById("startBtn");
+  const resumeBtn = document.getElementById("resumeBtn");
   const aboutBtn = document.getElementById("aboutBtn");
   const aboutPanel = document.getElementById("aboutPanel");
   const missionHud = document.getElementById("missionHud");
@@ -1062,6 +1070,7 @@
   let openingAssistPlacedAt = 0;
   let lastPacePickupAt = 0;
   let collisionFrames = 0;
+  let resumeCheckpoint = null;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -1069,6 +1078,91 @@
   }
 
   let best = readBest();
+
+  function readCookie(name) {
+    const prefix = name + "=";
+    const parts = document.cookie.split("; ");
+    for (const part of parts) {
+      if (part.startsWith(prefix)) return decodeURIComponent(part.slice(prefix.length));
+    }
+    return null;
+  }
+
+  function updateResumeButton() {
+    if (resumeCheckpoint && resumeCheckpoint.c >= 2) {
+      resumeBtn.textContent = "Resume — " + resumeCheckpoint.c + " streetcars";
+      resumeBtn.classList.add("show");
+    } else {
+      resumeBtn.classList.remove("show");
+    }
+  }
+
+  function clearResumeCheckpoint() {
+    resumeCheckpoint = null;
+    document.cookie = "ttcSnakeResume=; Max-Age=0; Path=/; SameSite=Lax";
+    updateResumeButton();
+  }
+
+  function readResumeCheckpoint() {
+    try {
+      const raw = readCookie("ttcSnakeResume");
+      if (!raw) return null;
+      const checkpoint = JSON.parse(raw);
+      if (!checkpoint || checkpoint.v !== 1 ||
+          !Number.isFinite(checkpoint.c) || checkpoint.c < 2 ||
+          !checkpoint.e || !edgeById(checkpoint.e)) {
+        return null;
+      }
+      return checkpoint;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function compactResumeTrail() {
+    const poses = getTrainPoses().filter((pose) => pose.placed !== false);
+    if (!poses.length) return [];
+    const headPose = poses[0];
+    return poses.slice(0, 180).map((pose) => [
+      Math.round(pose.x - headPose.x),
+      Math.round(pose.y - headPose.y),
+    ]);
+  }
+
+  function saveResumeCheckpoint() {
+    if (dead || !head || trainCars < 2) return;
+
+    const checkpoint = {
+      v: 1,
+      c: trainCars,
+      e: head.edge.id,
+      s: Math.round(head.s * 10) / 10,
+      d: head.dir,
+      sp: Math.round(speedKph),
+      gm: gameMode,
+      om: operatorMode,
+      mc: missionsCompleted,
+      mr: currentMission ? currentMission.def.route : null,
+      rv: currentMission ? currentMission.reverse : false,
+      tr: compactResumeTrail(),
+    };
+
+    try {
+      let encoded = encodeURIComponent(JSON.stringify(checkpoint));
+      // Keep safely below common ~4 KB per-cookie limits. Very large consists
+      // still preserve count/location even if their full visible shape cannot fit.
+      if (encoded.length > 3600) {
+        checkpoint.tr = [];
+        encoded = encodeURIComponent(JSON.stringify(checkpoint));
+      }
+      document.cookie = "ttcSnakeResume=" + encoded +
+        "; Max-Age=2592000; Path=/; SameSite=Lax";
+      resumeCheckpoint = checkpoint;
+      updateResumeButton();
+    } catch (_) {
+      // Resume is optional and must never interrupt gameplay.
+    }
+  }
 
   function saveBest() {
     const joined = trainCars - 1;
@@ -1461,6 +1555,101 @@
     updateSwitchPanel(true);
   }
 
+  function restoreGame(checkpoint) {
+    queuedDirection = null;
+    manualSwitchEdgeId = null;
+    switchSignature = "";
+    dead = false;
+    paused = false;
+    collisionFrames = 0;
+    missionsCompleted = Number(checkpoint.mc) || 0;
+    firstPickupCollected = true;
+    runStartedAt = 0;
+    openingAssistPlacedAt = 0;
+    lastPacePickupAt = 0;
+
+    trainCars = Math.max(2, Number(checkpoint.c) || 2);
+    gameMode = checkpoint.gm === "mission" ? "mission" : "free";
+    operatorMode = ["realistic", "arcade", "rogue"].includes(checkpoint.om)
+      ? checkpoint.om
+      : "arcade";
+
+    gameModeSelect.value = gameMode;
+    operatorModeSelect.value = operatorMode;
+
+    speedKph = Number(checkpoint.sp) || MODE_START_SPEED_KPH[operatorMode];
+    speedKph = Math.max(0, Math.min(speedCapKph(), speedKph));
+
+    const edge = edgeById(checkpoint.e);
+    const dir = checkpoint.d < 0 ? -1 : 1;
+    const savedS = Number(checkpoint.s);
+    const sOnEdge = Math.max(0, Math.min(edge.len, Number.isFinite(savedS) ? savedS : 0));
+    const hp = pointAt(edge, sOnEdge);
+    const heading = hp.angle + (dir < 0 ? Math.PI : 0);
+    head = {
+      edge,
+      s: sOnEdge,
+      dir,
+      headingX: Math.cos(heading),
+      headingY: Math.sin(heading),
+    };
+
+    currentMission = null;
+    if (gameMode === "mission" && checkpoint.mr) {
+      const def = MISSION_DEFS.find((item) => item.route === checkpoint.mr);
+      if (def) currentMission = buildMission(def, Boolean(checkpoint.rv));
+    }
+
+    trail = [];
+    trailStart = 0;
+    trailDistance = 0;
+
+    // Saved car centres are relative to the head and ordered head→tail.
+    // Reverse them to seed a tail→head trail. Cars beyond the saved shape are
+    // marked unplaced by getTrainPoses() and safely enter the train as we move.
+    const savedShape = Array.isArray(checkpoint.tr) ? checkpoint.tr : [];
+    if (savedShape.length >= 2) {
+      const points = savedShape.map((pair) => ({
+        x: hp.x + Number(pair[0] || 0),
+        y: hp.y + Number(pair[1] || 0),
+      })).reverse();
+
+      for (const point of points) {
+        const last = trail[trail.length - 1];
+        if (last) {
+          trailDistance += Math.max(0.1, Math.hypot(point.x - last.x, point.y - last.y));
+        }
+        trail.push({ x: point.x, y: point.y, d: trailDistance });
+      }
+
+      const last = trail[trail.length - 1];
+      const finalGap = Math.hypot(hp.x - last.x, hp.y - last.y);
+      if (finalGap > 0.1) {
+        trailDistance += finalGap;
+        trail.push({ x: hp.x, y: hp.y, d: trailDistance });
+      }
+    } else {
+      trail.push({ x: hp.x, y: hp.y, d: 0 });
+    }
+
+    camera.x = hp.x;
+    camera.y = hp.y;
+    camera.scale = 0.7;
+
+    chaos = null;
+    blockedEdgeId = null;
+    eventBanner.hidden = true;
+    nextChaosAt = performance.now() + 20000 + Math.random() * 18000;
+
+    pickups = [];
+    while (pickups.length < desiredPickupCount()) pickups.push(makePickup());
+
+    tip.textContent = "Resumed checkpoint — " + trainCars + " streetcars back in service.";
+    updateStartButton();
+    updateHud();
+    updateSwitchPanel(true);
+  }
+
   function makePickup() {
     // Prefer actual running/diversion track; yard pickups are deliberately rarer.
     for (let attempts = 0; attempts < 100; attempts++) {
@@ -1752,6 +1941,7 @@
         while (pickups.length < desiredPickupCount()) pickups.push(makePickup());
         pickupChime();
         saveBest();
+        saveResumeCheckpoint();
         updateHud();
         tip.textContent = trainCars >= 40
           ? "Forty cars. Transit Control has stopped asking questions."
@@ -1773,6 +1963,7 @@
     // At compressed terminal loops, prime the correct departure leg so the
     // turnaround behaves like a route reversal instead of choosing a random spur.
     manualSwitchEdgeId = currentMission.startEdge;
+    saveResumeCheckpoint();
 
     tip.textContent = "Terminal reached. Bonus car coupled. Now " +
       currentMission.def.route + " back to " + nodes.get(currentMission.targetNode).label + ".";
@@ -1888,13 +2079,14 @@
     blockedEdgeId = null;
     eventBanner.hidden = true;
     saveBest();
+    clearResumeCheckpoint();
     updateHud();
     overlay.classList.remove("hidden");
     overlay.querySelector("h1").textContent = "Service suspended";
     overlay.querySelector(".big").textContent = "You coupled " + (trainCars - 1) + " extra streetcars into a " + Math.round(totalTrainLength()) + " m consist.";
     overlay.querySelectorAll("p")[1].textContent = "The head of the train met the rest of the train. This is frowned upon, even by Toronto standards.";
     overlay.querySelectorAll("p")[2].textContent = "High score: " + best + " joined streetcars.";
-    startBtn.textContent = "Reset the switch & depart again";
+    startBtn.textContent = "Begin new game";
   }
 
   function togglePause() {
@@ -2479,7 +2671,7 @@
       : operatorModeSelect.value === "rogue"
         ? " • Airplane"
         : " • Arcade";
-    startBtn.textContent = "Depart: " + label + feel;
+    startBtn.textContent = "Begin new game — " + label + feel;
   }
   gameModeSelect.addEventListener("change", updateStartButton);
   operatorModeSelect.addEventListener("change", updateStartButton);
@@ -2493,6 +2685,8 @@
     } catch (_) {}
   });
 
+  resumeCheckpoint = readResumeCheckpoint();
+  updateResumeButton();
   updateStartButton();
 
   function setPedal(button, kind, pressed) {
@@ -2517,14 +2711,30 @@
     }
   }
 
-  startBtn.addEventListener("click", () => {
-    resetGame();
+  function beginRunning() {
     overlay.classList.add("hidden");
     running = true;
     lastT = performance.now();
     runStartedAt = lastT;
     openingAssistPlacedAt = lastT;
     ringBell();
+  }
+
+  resumeBtn.addEventListener("click", () => {
+    const checkpoint = readResumeCheckpoint();
+    if (!checkpoint) {
+      clearResumeCheckpoint();
+      return;
+    }
+    resumeCheckpoint = checkpoint;
+    restoreGame(checkpoint);
+    beginRunning();
+  });
+
+  startBtn.addEventListener("click", () => {
+    clearResumeCheckpoint();
+    resetGame();
+    beginRunning();
   });
 
   aboutBtn.addEventListener("click", () => {
