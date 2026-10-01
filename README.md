@@ -107,3 +107,10 @@ Two false-death paths were corrected: placeholder tail cars created when a consi
 - Contextual LEFT / STRAIGHT / RIGHT switch choices occupy the bottom centre only while approaching special work.
 - Active ×2/×3 challenge zones show an off-screen directional arrow with distance.
 - Armed multipliers and pickup rewards render as floating badges beside the lead streetcar, including persistent `NEXT PICKUP ×2/×3` feedback.
+
+
+### Terminal turnbacks and pinch zoom
+
+- The map's single street-corridor centreline is rendered as two directional virtual rails separated by a few metres, so a terminal turnaround no longer sends the outbound head directly back through its inbound consist.
+- Simplified degree-1 endpoints get a short virtual loop connection plus a distance-based collision grace covering only the lead car's physical clearance of the loop.
+- On touch devices, two-finger pinch gestures zoom the game camera instead of Safari's page viewport. The HUD, brake, accelerator, and switch controls remain screen-sized and fixed in their safe areas.
