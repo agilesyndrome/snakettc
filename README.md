@@ -68,3 +68,12 @@ This is an unofficial fan game and is not affiliated with or endorsed by the Tor
 ### Opening pickup assist
 
 The first collectible is intentionally different from normal random spawns. It is placed about 6–8 seconds ahead along the player's current track path and is re-targeted if the player misses it by taking another switch. After roughly 22 seconds the assist becomes more aggressive, keeping the first coupling within the opening 30-second engagement window under normal driving. Transit Control disruptions are held until after that first pickup.
+
+
+### Controls, route continuity, and pickup pacing
+
+- Touch controls use brake, pause, accelerator, and contextual LEFT / STRAIGHT / RIGHT turnout buttons; the old on-screen arrow pad has been removed.
+- Switch warning distance scales with speed, so very fast modes expose turnout choices much earlier.
+- With no explicit turnout selection, junction routing strongly prefers the same TTC route/corridor and avoids yard or special-work branches. Manual turnout selection still overrides this.
+- Speed-aware pickup density increases the number of collectible streetcars as velocity rises. After the opening pickup, one "pace" streetcar is periodically placed ahead on the player's current path to keep long straightaways active.
+- Collecting a streetcar plays an original synthesized transit-style three-note chime. A persistent "Mute sounds" checkbox is available on the start screen.
