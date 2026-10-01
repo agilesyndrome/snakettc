@@ -8,9 +8,12 @@ Choose **Free Play** or **Route Missions** before departing.
 
 - **Free Play:** the whole track network is open; collect streetcars and build the longest consist you can.
 - **Route Missions:** operate a real TTC route/terminal pair. Reaching the destination couples one bonus car and flips the sign for the return trip.
+- **Random starts:** every departure starts at a different point on the playable network; Route Missions randomize onto track used by the selected route.
 - **Keyboard steering:** Arrow keys or WASD.
 - **Manual switch control:** Q = left turnout, E = right turnout, R = straight. An approaching-junction panel also lets you throw the switch directly.
 - **Mobile:** on-screen direction pad or swipe to steer; tap the turnout choices when a switch is approaching.
+- **Speed controls:** hold the on-screen accelerator/brake pedals, or use `+` and `-`. Normal Operator starts at 50 km/h and is governed there.
+- **Rogue Operator:** removes the normal governor. The real Flexity rating of 70 km/h is shown as the realism boundary; game over-speed up to 140 km/h is intentionally fictional.
 - **Pause:** Space, P, or the centre touch button.
 - **High score:** stored in a first-party cookie as the number of streetcars joined.
 - **Transit Control events:** occasional slow orders or stalled cars temporarily alter the run and may force a diversion.
@@ -19,7 +22,7 @@ Choose **Free Play** or **Route Missions** before departing.
 
 The game stores its network in latitude/longitude and projects it into metres. A TTC Flexity low-floor streetcar is drawn **30.20 m long**, matching TTC's published vehicle specification. Car width is slightly exaggerated on very small screens so a 2.54 m-wide streetcar does not disappear into a single pixel.
 
-The map is intentionally not a GIS/track-engineering dataset, but it preserves the recognizable 2026 network topology and geography: Queen/Queensway/Lake Shore, King, Dundas, College/Carlton/Gerrard, Kingston Road, Broadview, Bathurst, Spadina, Harbourfront/Fleet, St Clair, downtown diversion trackage, terminal loops/stations, and playable spurs for Roncesvalles Carhouse, Russell Carhouse, Leslie Barns, and Harvey Shop/Hillcrest.
+The map is intentionally not a GIS/track-engineering dataset, but it preserves the recognizable 2026 network topology and geography. Major street corridors are labeled in-world, the minimap labels major terminals, and a live "YOU ARE NEAR" readout tracks the nearest named intersection/terminal: Queen/Queensway/Lake Shore, King, Dundas, College/Carlton/Gerrard, Kingston Road, Broadview, Bathurst, Spadina, Harbourfront/Fleet, St Clair, downtown diversion trackage, terminal loops/stations, and playable spurs for Roncesvalles Carhouse, Russell Carhouse, Leslie Barns, and Harvey Shop/Hillcrest.
 
 The underlying map represents the playable network rather than a live dispatch feed. Gameplay can generate temporary slow orders and blocked-track diversions, but those events are fictionalized for the run.
 
