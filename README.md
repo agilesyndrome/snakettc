@@ -4,11 +4,16 @@ Classic Snake, except you are operating a TTC streetcar on a geographically simp
 
 ## Play
 
-- **Keyboard:** Arrow keys or WASD. Choose a direction before the next switch.
-- **Mobile:** On-screen direction pad or swipe anywhere on the map.
+Choose **Free Play** or **Route Missions** before departing.
+
+- **Free Play:** the whole track network is open; collect streetcars and build the longest consist you can.
+- **Route Missions:** operate a real TTC route/terminal pair. Reaching the destination couples one bonus car and flips the sign for the return trip.
+- **Keyboard steering:** Arrow keys or WASD.
+- **Manual switch control:** Q = left turnout, E = right turnout, R = straight. An approaching-junction panel also lets you throw the switch directly.
+- **Mobile:** on-screen direction pad or swipe to steer; tap the turnout choices when a switch is approaching.
 - **Pause:** Space, P, or the centre touch button.
-- **Goal:** Collect streetcars without running the head of your train into your own consist.
-- **High score:** Stored in a first-party cookie as the number of streetcars joined.
+- **High score:** stored in a first-party cookie as the number of streetcars joined.
+- **Transit Control events:** occasional slow orders or stalled cars temporarily alter the run and may force a diversion.
 
 ## Real-world scale and map model
 
@@ -16,7 +21,15 @@ The game stores its network in latitude/longitude and projects it into metres. A
 
 The map is intentionally not a GIS/track-engineering dataset, but it preserves the recognizable 2026 network topology and geography: Queen/Queensway/Lake Shore, King, Dundas, College/Carlton/Gerrard, Kingston Road, Broadview, Bathurst, Spadina, Harbourfront/Fleet, St Clair, downtown diversion trackage, terminal loops/stations, and playable spurs for Roncesvalles Carhouse, Russell Carhouse, Leslie Barns, and Harvey Shop/Hillcrest.
 
-Temporary construction diversions are not simulated; the game represents the underlying playable streetcar network.
+The underlying map represents the playable network rather than a live dispatch feed. Gameplay can generate temporary slow orders and blocked-track diversions, but those events are fictionalized for the run.
+
+### Route missions
+
+The mission roster reflects TTC terminal pairs in the 2026 service information used by the game: 501 Humber–Neville Park, 504A Dundas West–Distillery, 504B Dufferin Gate–Broadview, 505 Dundas West–Broadview, 506 High Park–Main Street, 509 Exhibition–Union, 510A Spadina–Union, 511 Bathurst–Exhibition, and 512 Gunns–St Clair.
+
+### Performance notes
+
+Static track geometry is cached as reusable world-space canvas paths instead of rebuilt every frame. Train history uses a rolling distance-indexed buffer, and self-collision uses streetcar-shaped capsules rather than centre-point circles. Cloudflare serves static assets directly; the Worker is invoked first only for `/healthz`.
 
 ## Run locally
 
