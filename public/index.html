@@ -390,7 +390,6 @@
     margin-right: 5px;
     color: #ff5a60;
     font-size: 9px;
-    transform: rotate(45deg);
     vertical-align: 1px;
   }
 
@@ -713,7 +712,7 @@
   <div class="stat stat-best"><b id="bestStat">0</b><span>best</span></div>
   <div class="stat stat-length"><b id="lengthStat">30 m</b><span>length</span></div>
   <div class="stat stat-speed"><b id="speedStat">90</b><span>km/h</span></div>
-  <div id="locationHud"><span class="stop-diamond">◆</span><strong>NEXT STOP:</strong> finding the next pole…</div>
+  <div id="locationHud"><span class="stop-diamond">◆</span><strong>Next Stop:</strong> finding the next pole…</div>
   <div class="tip" id="tip">At special work use the switch buttons or Q / R / E for left / straight / right. Hold + to accelerate, − to brake. Space or P pauses.</div>
   <div id="missionHud" aria-live="polite">
     <div id="missionRoute">501</div>
@@ -1607,7 +1606,7 @@
     if (!head) return;
     nextStopCache = nextStopAhead();
     const stopName = nextStopCache?.stop?.name || "End of track";
-    locationHud.innerHTML = '<span class="stop-diamond">◆</span><strong>NEXT STOP:</strong> ' + stopName;
+    locationHud.innerHTML = '<span class="stop-diamond">◆</span><strong>Next Stop:</strong> ' + stopName;
   }
 
   function randomHeadOnEdges(candidateEdges) {
