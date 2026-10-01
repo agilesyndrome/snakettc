@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#d71920" />
+<title>TTC Streetcar Snake</title>
+<style>
+  :root {
+    --ttc-red: #d71920;
+    --ink: #101114;
+    --paper: #f1eee5;
+    --hud: rgba(13, 15, 18, .91);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #e9e5db; }
+  body {
+    color: white;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    touch-action: none;
+    overscroll-behavior: none;
+    user-select: none;
+  }
+
+  #game { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; background: var(--paper); }
+
+  .hud {
+    position: fixed;
+    z-index: 5;
+    left: max(12px, env(safe-area-inset-left));
+    top: max(12px, env(safe-area-inset-top));
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 8px;
+    pointer-events: none;
+  }
+
+  .brand, .stat, .tip {
+    background: var(--hud);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 6px 20px rgba(0,0,0,.22);
+    backdrop-filter: blur(8px);
+  }
+
+  .brand {
+    grid-column: 1 / -1;
+    max-width: min(660px, calc(100vw - 24px));
+    padding: 10px 12px 9px;
+    border-radius: 12px;
+  }
+
+  .brand .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 43px;
+    height: 30px;
+    padding: 0 8px;
+    margin-right: 8px;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    background: var(--ttc-red);
+    font-size: 18px;
+    font-weight: 900;
+    vertical-align: 1px;
+  }
+
+  .brand strong { font-size: 18px; letter-spacing: -.02em; }
+  .brand small { display: block; margin-top: 3px; color: #c8ccd2; font-size: 11px; line-height: 1.25; }
+
+  .stat { min-width: 78px; padding: 8px 10px; border-radius: 10px; }
+  .stat b { display: block; font-size: 18px; line-height: 1.1; }
+  .stat span { display: block; margin-top: 2px; color: #aeb4bd; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+
+  .tip {
+    grid-column: 1 / -1;
+    max-width: min(660px, calc(100vw - 24px));
+    padding: 7px 10px;
+    border-radius: 10px;
+    color: #e9edf2;
+    font-size: 11px;
+  }
+
+  #minimap {
+    position: fixed;
+    z-index: 4;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    width: min(29vw, 300px);
+    height: min(19vw, 190px);
+    min-width: 180px;
+    min-height: 112px;
+    border: 1px solid rgba(0,0,0,.22);
+    border-radius: 13px;
+    background: rgba(248,246,239,.95);
+    box-shadow: 0 7px 24px rgba(0,0,0,.2);
+    pointer-events: none;
+  }
+
+  .mini-label {
+    position: fixed;
+    z-index: 5;
+    top: calc(max(12px, env(safe-area-inset-top)) + 7px);
+    right: calc(max(12px, env(safe-area-inset-right)) + 9px);
+    color: #4f555d;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  #dpad {
+    position: fixed;
+    z-index: 8;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: 174px;
+    height: 174px;
+    display: grid;
+    grid-template: repeat(3, 54px) / repeat(3, 54px);
+    gap: 6px;
+  }
+
+  .control {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 16px;
+    background: rgba(12,14,17,.84);
+    color: white;
+    box-shadow: 0 5px 16px rgba(0,0,0,.22);
+    font: 900 24px/1 system-ui, sans-serif;
+    touch-action: manipulation;
+  }
+  .control:active, .control.active { transform: translateY(1px) scale(.97); background: var(--ttc-red); }
+  .up { grid-area: 1 / 2; }
+  .left { grid-area: 2 / 1; }
+  .pause { grid-area: 2 / 2; font-size: 16px; }
+  .right { grid-area: 2 / 3; }
+  .down { grid-area: 3 / 2; }
+
+  #aboutBtn {
+    position: fixed;
+    z-index: 8;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+    padding: 9px 12px;
+    background: rgba(12,14,17,.84);
+    color: white;
+    font: 700 12px system-ui, sans-serif;
+  }
+
+  #aboutPanel {
+    position: fixed;
+    z-index: 30;
+    left: max(14px, env(safe-area-inset-left));
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 46px);
+    display: none;
+    width: min(530px, calc(100vw - 28px));
+    max-height: min(66vh, 600px);
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 16px;
+    background: rgba(17,19,23,.97);
+    box-shadow: 0 16px 45px rgba(0,0,0,.36);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  #aboutPanel.open { display: block; }
+  #aboutPanel h2 { margin: 0 0 7px; font-size: 17px; }
+  #aboutPanel p { margin: 8px 0; color: #d4d7dc; }
+  #aboutPanel a { color: #ffb9bc; }
+
+  #overlay {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(6,8,10,.50);
+    backdrop-filter: blur(3px);
+  }
+  #overlay.hidden { display: none; }
+
+  .card {
+    width: min(570px, calc(100vw - 30px));
+    padding: 22px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 20px;
+    background: rgba(17,19,23,.97);
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+  }
+  .card h1 { margin: 0 0 8px; font-size: clamp(25px, 5vw, 38px); line-height: .98; }
+  .card p { margin: 7px 0; color: #d1d5dc; line-height: 1.45; font-size: 14px; }
+  .card .big { color: white; font-size: 18px; font-weight: 800; }
+  .card button {
+    margin-top: 14px;
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    background: var(--ttc-red);
+    color: white;
+    font: 800 15px system-ui, sans-serif;
+    cursor: pointer;
+  }
+
+  @media (max-width: 760px) {
+    .hud { grid-template-columns: repeat(4, minmax(64px, 1fr)); right: 12px; }
+    .brand { min-height: 66px; padding-right: 195px; }
+    .brand small { max-width: 320px; }
+    .stat { min-width: 0; }
+    .stat b { font-size: 16px; }
+    #minimap { width: 175px; height: 110px; }
+    #dpad { transform: scale(.92); transform-origin: bottom right; }
+  }
+
+  @media (max-width: 540px) {
+    #minimap { top: 10px; left: 10px; right: auto; width: calc(100vw - 20px); height: 105px; }
+    .mini-label { top: 16px; left: 20px; right: auto; }
+    .hud { top: 122px; }
+    .brand { padding-right: 10px; }
+    .brand strong { font-size: 16px; }
+    .brand small { max-width: none; }
+    .tip { display: none; }
+    #dpad { transform: scale(.86); }
+  }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="TTC Streetcar Snake game"></canvas>
+<canvas id="minimap" aria-hidden="true"></canvas>
+<div class="mini-label">Network map</div>
+
+<div class="hud">
+  <div class="brand">
+    <span class="badge">∞</span><strong>TTC STREETCAR SNAKE</strong>
+    <small>2026 network-inspired geometry • every Flexity is 30.20 m long in world scale</small>
+  </div>
+  <div class="stat"><b id="carsStat">1</b><span>train cars</span></div>
+  <div class="stat"><b id="joinedStat">0</b><span>joined</span></div>
+  <div class="stat"><b id="bestStat">0</b><span>high score</span></div>
+  <div class="stat"><b id="lengthStat">30 m</b><span>train length</span></div>
+  <div class="tip" id="tip">Arrow keys / WASD steer at the next switch. On touch: use the pad or swipe. Space or P pauses.</div>
+</div>
+
+<div id="dpad" aria-label="Touch controls">
+  <button class="control up" data-dir="up" aria-label="North">↑</button>
+  <button class="control left" data-dir="left" aria-label="West">←</button>
+  <button class="control pause" data-dir="pause" aria-label="Pause">Ⅱ</button>
+  <button class="control right" data-dir="right" aria-label="East">→</button>
+  <button class="control down" data-dir="down" aria-label="South">↓</button>
+</div>
+
+<button id="aboutBtn">Map + sources</button>
+<div id="aboutPanel">
+  <h2>Map notes</h2>
+  <p>This is a deliberately simplified <strong>geographic</strong> model of Toronto's legacy streetcar track network, not a turn-by-turn operating map. It preserves the main corridors, terminal loops/stations, cross-network connections, and the three streetcar carhouses; tiny yard ladders and some special-work track are compressed for playability.</p>
+  <p><strong>Vehicle scale:</strong> TTC's Flexity low-floor streetcar is 30.20 m long and 2.54 m wide. Length is drawn at true world scale. Width gets a tiny minimum on small screens so your streetcar does not become avant-garde pixel art.</p>
+  <p><strong>2026 anchors:</strong> 501, 503, 504, 505, 506, 507/508, 509, 510, 511 and 512 corridors; Long Branch, Humber, Gunns, High Park, Dufferin Gate, Exhibition, Distillery, Bingham and Neville Park loops; Union, Spadina, Bathurst, Broadview, Dundas West and Main Street stations.</p>
+  <p><strong>Carhouses:</strong> Roncesvalles, Russell and Leslie Barns are playable. Harvey Shop/Hillcrest is included as a maintenance spur.</p>
+  <p>Official references:<br>
+    <a href="https://cdn.ttc.ca/-/media/Project/TTC/DevProto/Images/Home/Routes-and-Schedules/Landing-page-pdfs/TTC_SubwayStreetcarLightrailMap.pdf" target="_blank" rel="noreferrer">TTC Subway, Light Rail and Streetcar Map — June 2026</a><br>
+    <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
+    <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
+  </p>
+  <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h1>Streetcar Snake</h1>
+    <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
+    <p>Collect glowing Flexitys. Every pickup adds another full 30.20 m streetcar to your train. Queue a direction before the next switch and the consist follows the rails.</p>
+    <p>Loops and carhouses are fair game. Running into your own train is not.</p>
+    <button id="startBtn">Ring bell &amp; depart</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // -------------------------------------------------------------------------
+  // World model
+  // -------------------------------------------------------------------------
+  // The track graph is hand-simplified from TTC's 2026 streetcar map and
+  // projected from latitude/longitude into metres. It is intentionally not a
+  // survey-grade GIS model: the goal is recognizable topology + physical scale.
+
+  const CAR_LENGTH_M = 30.20;
+  const CAR_WIDTH_M = 2.54;
+  const COUPLER_GAP_M = 1.50;
+  const CAR_SPACING_M = CAR_LENGTH_M + COUPLER_GAP_M;
+  const MAX_SPEED_MPS = 19.0; // Near the TTC-published 70 km/h vehicle maximum.
+  const PICKUP_COUNT = 8;
+  const REF_LAT = 43.6500;
+  const REF_LON = -79.3900;
+  const METERS_PER_DEG_LAT = 111320;
+  const METERS_PER_DEG_LON = METERS_PER_DEG_LAT * Math.cos(REF_LAT * Math.PI / 180);
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const mini = document.getElementById("minimap");
+  const mctx = mini.getContext("2d");
+  const carsStat = document.getElementById("carsStat");
+  const joinedStat = document.getElementById("joinedStat");
+  const bestStat = document.getElementById("bestStat");
+  const lengthStat = document.getElementById("lengthStat");
+  const tip = document.getElementById("tip");
+  const overlay = document.getElementById("overlay");
+  const startBtn = document.getElementById("startBtn");
+  const aboutBtn = document.getElementById("aboutBtn");
+  const aboutPanel = document.getElementById("aboutPanel");
+
+  let dpr = 1;
+  let W = 0;
+  let H = 0;
+  let mW = 0;
+  let mH = 0;
+
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth;
+    H = innerHeight;
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    const mr = mini.getBoundingClientRect();
+    mW = mr.width;
+    mH = mr.height;
+    mini.width = Math.round(mW * dpr);
+    mini.height = Math.round(mH * dpr);
+    mctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  addEventListener("resize", resize);
+  resize();
+
+  function project(lat, lon) {
+    return {
+      x: (lon - REF_LON) * METERS_PER_DEG_LON,
+      y: (REF_LAT - lat) * METERS_PER_DEG_LAT,
+    };
+  }
+
+  const nodes = new Map();
+  const edges = [];
+  const adjacency = new Map();
+
+  function N(id, label, lat, lon, type = "junction") {
+    const p = project(lat, lon);
+    const n = { id, label, lat, lon, type, x: p.x, y: p.y };
+    nodes.set(id, n);
+    adjacency.set(id, []);
+    return n;
+  }
+
+  function E(id, aId, bId, tags = [], via = []) {
+    const a = nodes.get(aId);
+    const b = nodes.get(bId);
+    const geo = [[a.lat, a.lon], ...via, [b.lat, b.lon]];
+    const pts = geo.map(([lat, lon]) => project(lat, lon));
+    const cum = [0];
+    let len = 0;
+
+    for (let i = 1; i < pts.length; i++) {
+      len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      cum.push(len);
+    }
+
+    const edge = { id, a: aId, b: bId, tags, pts, cum, len };
+    edges.push(edge);
+    adjacency.get(aId).push(edge);
+    adjacency.get(bId).push(edge);
+    return edge;
+  }
+
+  // Queen / Queensway / Lake Shore West.
+  N("longBranch", "Long Branch Loop", 43.5912, -79.5448, "loop");
+  N("humber", "Humber Loop", 43.6370, -79.4915, "loop");
+  N("roncyHub", "Queen / Roncesvalles", 43.6393, -79.4462);
+  N("queenDufferin", "Queen / Dufferin", 43.6436, -79.4274);
+  N("queenBathurst", "Queen / Bathurst", 43.6468, -79.4042);
+  N("queenSpadina", "Queen / Spadina", 43.6488, -79.3957);
+  N("queenYork", "Queen / York", 43.6512, -79.3838);
+  N("queenYonge", "Queen / Yonge", 43.6526, -79.3790);
+  N("queenChurch", "Queen / Church", 43.6535, -79.3752);
+  N("queenParliament", "Queen / Parliament", 43.6563, -79.3642);
+  N("queenBroadview", "Queen / Broadview", 43.6581, -79.3508);
+  N("queenLeslie", "Queen / Leslie", 43.6627, -79.3326);
+  N("queenCoxwell", "Queen / Coxwell", 43.6666, -79.3165);
+  N("queenKingston", "Queen / Kingston", 43.6688, -79.3069);
+  N("neville", "Neville Park Loop", 43.6736, -79.2812, "loop");
+
+  E("lakeShoreWest", "longBranch", "humber", ["501", "507", "508"], [
+    [43.5960, -79.5340], [43.6040, -79.5200], [43.6145, -79.5050],
+    [43.6250, -79.4945], [43.6330, -79.4910],
+  ]);
+  E("queensway", "humber", "roncyHub", ["501", "508"], [
+    [43.6388, -79.4790], [43.6393, -79.4650], [43.6390, -79.4540],
+  ]);
+  E("queen1", "roncyHub", "queenDufferin", ["501"]);
+  E("queen2", "queenDufferin", "queenBathurst", ["501"]);
+  E("queen3", "queenBathurst", "queenSpadina", ["501"]);
+  E("queen4", "queenSpadina", "queenYork", ["501"]);
+  E("queen5", "queenYork", "queenYonge", ["501"]);
+  E("queen6", "queenYonge", "queenChurch", ["501"]);
+  E("queen7", "queenChurch", "queenParliament", ["501"]);
+  E("queen8", "queenParliament", "queenBroadview", ["501"]);
+  E("queen9", "queenBroadview", "queenLeslie", ["501"]);
+  E("queen10", "queenLeslie", "queenCoxwell", ["501"]);
+  E("queen11", "queenCoxwell", "queenKingston", ["501", "503"]);
+  E("queen12", "queenKingston", "neville", ["501", "503"], [[43.6710, -79.2960]]);
+
+  // King + Distillery / Cherry.
+  N("kingDufferin", "King / Dufferin", 43.6401, -79.4270);
+  N("kingBathurst", "King / Bathurst", 43.6430, -79.4027);
+  N("kingSpadina", "King / Spadina", 43.6450, -79.3950);
+  N("kingYork", "King / York", 43.6467, -79.3835);
+  N("kingYonge", "King / Yonge", 43.6488, -79.3778);
+  N("kingChurch", "King / Church", 43.6498, -79.3737);
+  N("kingParliament", "King / Parliament", 43.6523, -79.3636);
+  N("kingSumach", "King / Sumach", 43.6530, -79.3568);
+  N("distillery", "Distillery Loop", 43.6505, -79.3592, "loop");
+
+  E("king1", "roncyHub", "kingDufferin", ["504", "508"]);
+  E("king2", "kingDufferin", "kingBathurst", ["504", "508"]);
+  E("king3", "kingBathurst", "kingSpadina", ["504", "508"]);
+  E("king4", "kingSpadina", "kingYork", ["504", "508"]);
+  E("king5", "kingYork", "kingYonge", ["504", "508"]);
+  E("king6", "kingYonge", "kingChurch", ["504", "508"]);
+  E("king7", "kingChurch", "kingParliament", ["504"]);
+  E("king8", "kingParliament", "kingSumach", ["504"]);
+  E("cherry", "kingSumach", "distillery", ["504A"], [[43.6510, -79.3553]]);
+
+  // Roncesvalles + Dundas.
+  N("roncyDundas", "Dundas / Roncesvalles", 43.6518, -79.4496);
+  N("dundasWest", "Dundas West Station", 43.6566, -79.4523, "station");
+  N("dundasBathurst", "Dundas / Bathurst", 43.6517, -79.4062);
+  N("dundasSpadina", "Dundas / Spadina", 43.6532, -79.3980);
+  N("dundasYonge", "Dundas / Yonge", 43.6561, -79.3802);
+  N("dundasChurch", "Dundas / Church", 43.6570, -79.3762);
+  N("dundasParliament", "Dundas / Parliament", 43.6606, -79.3680);
+  N("dundasBroadview", "Dundas / Broadview", 43.6632, -79.3570);
+
+  E("roncySouth", "roncyHub", "roncyDundas", ["504"], [[43.6450, -79.4480]]);
+  E("roncyNorth", "roncyDundas", "dundasWest", ["504", "505"]);
+  E("dundas1", "dundasWest", "dundasBathurst", ["505"], [
+    [43.6540, -79.4440], [43.6515, -79.4300], [43.6508, -79.4160],
+  ]);
+  E("dundas2", "dundasBathurst", "dundasSpadina", ["505"]);
+  E("dundas3", "dundasSpadina", "dundasYonge", ["505"]);
+  E("dundas4", "dundasYonge", "dundasChurch", ["505"]);
+  E("dundas5", "dundasChurch", "dundasParliament", ["505"]);
+  E("dundas6", "dundasParliament", "dundasBroadview", ["505"]);
+
+  // College / Carlton / Gerrard + Main Street.
+  N("highPark", "High Park Loop", 43.6542, -79.4560, "loop");
+  N("collegeBathurst", "College / Bathurst", 43.6564, -79.4072);
+  N("collegeSpadina", "College / Spadina", 43.6577, -79.3992);
+  N("collegeYonge", "College / Yonge", 43.6617, -79.3832);
+  N("carltonChurch", "Carlton / Church", 43.6625, -79.3771);
+  N("gerrardParliament", "Gerrard / Parliament", 43.6632, -79.3690);
+  N("gerrardBroadview", "Gerrard / Broadview", 43.6660, -79.3529);
+  N("gerrardCoxwell", "Gerrard / Coxwell", 43.6726, -79.3190);
+  N("gerrardMain", "Gerrard / Main", 43.6815, -79.3011);
+  N("mainStation", "Main Street Station", 43.6891, -79.3010, "station");
+
+  E("highParkConn", "highPark", "roncyDundas", ["506"], [[43.6530, -79.4540]]);
+  E("collegeWest", "roncyDundas", "collegeBathurst", ["506"], [
+    [43.6540, -79.4400], [43.6550, -79.4250], [43.6560, -79.4140],
+  ]);
+  E("college1", "collegeBathurst", "collegeSpadina", ["506"]);
+  E("college2", "collegeSpadina", "collegeYonge", ["506"]);
+  E("carlton", "collegeYonge", "carltonChurch", ["506"]);
+  E("gerrard1", "carltonChurch", "gerrardParliament", ["506"]);
+  E("gerrard2", "gerrardParliament", "gerrardBroadview", ["506"]);
+  E("gerrard3", "gerrardBroadview", "gerrardCoxwell", ["506"], [
+    [43.6681, -79.3440], [43.6700, -79.3330],
+  ]);
+  E("gerrard4", "gerrardCoxwell", "gerrardMain", ["506"], [[43.6770, -79.3090]]);
+  E("mainTrack", "gerrardMain", "mainStation", ["506"]);
+
+  // Broadview surface connection.
+  N("kingBroadview", "King / Broadview", 43.6544, -79.3547);
+  N("broadviewStation", "Broadview Station", 43.6769, -79.3588, "station");
+  E("kingToBroadview", "kingSumach", "kingBroadview", ["504B"]);
+  E("broadviewQK", "kingBroadview", "queenBroadview", ["504B"]);
+  E("broadviewQD", "queenBroadview", "dundasBroadview", ["504B", "505"]);
+  E("broadviewDG", "dundasBroadview", "gerrardBroadview", ["504B", "505"]);
+  E("broadviewNorth", "gerrardBroadview", "broadviewStation", ["504B", "505"]);
+
+  // Kingston Road to Bingham.
+  N("bingham", "Bingham Loop", 43.6800, -79.2894, "loop");
+  E("kingston", "queenKingston", "bingham", ["503"], [
+    [43.6710, -79.3040], [43.6742, -79.2990], [43.6772, -79.2940],
+  ]);
+
+  // Coxwell is useful diversion / carhouse-access trackage.
+  E("coxwell", "queenCoxwell", "gerrardCoxwell", ["track"]);
+
+  // St Clair, Bathurst, and Hillcrest / Harvey Shop.
+  N("gunns", "Gunns Loop", 43.6738, -79.4664, "loop");
+  N("stClairLansdowne", "St Clair / Lansdowne", 43.6754, -79.4501);
+  N("stClairBathurst", "St Clair / Bathurst", 43.6828, -79.4177);
+  N("stClairYonge", "St Clair Station", 43.6882, -79.3944, "station");
+  N("bathurstStation", "Bathurst Station", 43.6662, -79.4110, "station");
+  N("bathurstDavenport", "Bathurst / Davenport", 43.6743, -79.4140);
+  N("harvey", "Harvey Shop / Hillcrest", 43.6753, -79.4146, "carhouse");
+
+  E("stclair1", "gunns", "stClairLansdowne", ["512"]);
+  E("stclair2", "stClairLansdowne", "stClairBathurst", ["512"], [[43.6790, -79.4350]]);
+  E("stclair3", "stClairBathurst", "stClairYonge", ["512"], [[43.6860, -79.4050]]);
+  E("bathurstNorth", "stClairBathurst", "bathurstDavenport", ["511"]);
+  E("bathurstStationN", "bathurstDavenport", "bathurstStation", ["511"]);
+  E("bathurstCollege", "bathurstStation", "collegeBathurst", ["511"]);
+  E("bathurstDundas", "collegeBathurst", "dundasBathurst", ["511"]);
+  E("bathurstQueen", "dundasBathurst", "queenBathurst", ["511"]);
+  E("bathurstKing", "queenBathurst", "kingBathurst", ["511"]);
+  E("hillcrestSpur", "bathurstDavenport", "harvey", ["yard"]);
+
+  // Spadina.
+  N("spadinaStation", "Spadina Station", 43.6678, -79.4039, "station");
+  N("spadinaQQ", "Spadina / Queens Quay", 43.6380, -79.3914);
+  E("spadina1", "spadinaStation", "collegeSpadina", ["510"]);
+  E("spadina2", "collegeSpadina", "dundasSpadina", ["510"]);
+  E("spadina3", "dundasSpadina", "queenSpadina", ["510"]);
+  E("spadina4", "queenSpadina", "kingSpadina", ["510"]);
+  E("spadina5", "kingSpadina", "spadinaQQ", ["510"], [[43.6410, -79.3930]]);
+
+  // Harbourfront / Fleet / Union / Dufferin Gate.
+  N("bathurstFleet", "Bathurst / Fleet", 43.6370, -79.4006);
+  N("exhibition", "Exhibition Loop", 43.6352, -79.4165, "loop");
+  N("dufferinGate", "Dufferin Gate Loop", 43.6348, -79.4264, "loop");
+  N("queensQuayBay", "Queens Quay Station", 43.6413, -79.3779, "station");
+  N("union", "Union Station Loop", 43.6452, -79.3807, "station");
+
+  E("bathurstFleetConn", "kingBathurst", "bathurstFleet", ["511"], [[43.6402, -79.4017]]);
+  E("fleetWest", "bathurstFleet", "exhibition", ["509", "511"]);
+  E("exhDufferin", "exhibition", "dufferinGate", ["track"], [[43.6345, -79.4210]]);
+  E("dufferinSouth", "kingDufferin", "dufferinGate", ["track"]);
+  E("qqWest", "exhibition", "spadinaQQ", ["509"], [
+    [43.6360, -79.4100], [43.6370, -79.4010], [43.6378, -79.3950],
+  ]);
+  E("qqEast", "spadinaQQ", "queensQuayBay", ["509", "510"], [[43.6392, -79.3845]]);
+  E("bayTunnel", "queensQuayBay", "union", ["509", "510"]);
+
+  // Downtown diversion / special-work grid represented on TTC's streetcar map.
+  N("richmondYork", "Richmond / York", 43.6504, -79.3840);
+  N("richmondChurch", "Richmond / Church", 43.6527, -79.3747);
+  N("adelaideSpadina", "Adelaide / Spadina", 43.6439, -79.3945);
+  N("adelaideYork", "Adelaide / York", 43.6460, -79.3833);
+  N("adelaideChurch", "Adelaide / Church", 43.6483, -79.3738);
+  N("wellingtonYork", "Wellington / York", 43.6446, -79.3827);
+  N("wellingtonChurch", "Wellington / Church", 43.6468, -79.3730);
+
+  E("yorkQueenRichmond", "queenYork", "richmondYork", ["diversion"]);
+  E("yorkRichmondAdelaide", "richmondYork", "adelaideYork", ["diversion"]);
+  E("yorkAdelaideKing", "adelaideYork", "kingYork", ["diversion"]);
+  E("spadinaAdelaide", "kingSpadina", "adelaideSpadina", ["diversion"]);
+  E("adelaide1", "adelaideSpadina", "adelaideYork", ["diversion"]);
+  E("adelaide2", "adelaideYork", "adelaideChurch", ["diversion"]);
+  E("churchAdelaideWellington", "adelaideChurch", "wellingtonChurch", ["diversion"]);
+  E("churchWellingtonKing", "wellingtonChurch", "kingChurch", ["diversion"]);
+  E("churchKingQueen", "kingChurch", "queenChurch", ["diversion"]);
+  E("richmondChurchQueen", "richmondChurch", "queenChurch", ["diversion"]);
+  E("richmondYorkChurch", "richmondYork", "richmondChurch", ["diversion"]);
+  E("wellingtonYorkChurch", "wellingtonYork", "wellingtonChurch", ["diversion"]);
+  E("yorkKingWellington", "kingYork", "wellingtonYork", ["diversion"]);
+
+  // Carhouses / barns. Yard ladders are compressed into single playable spurs.
+  N("roncyCarhouse", "Roncesvalles Carhouse", 43.6380, -79.4469, "carhouse");
+  N("russell", "Russell Carhouse", 43.6643, -79.3246, "carhouse");
+  N("leslieBarns", "Leslie Barns", 43.6530, -79.3272, "carhouse");
+  N("leslieLakeShore", "Leslie / Lake Shore", 43.6580, -79.3290);
+
+  E("roncyYard", "roncyHub", "roncyCarhouse", ["yard"]);
+  E("russellYard", "queenLeslie", "russell", ["yard"], [[43.6638, -79.3290]]);
+  E("leslieTrack", "queenLeslie", "leslieLakeShore", ["yard"]);
+  E("leslieYard", "leslieLakeShore", "leslieBarns", ["yard"]);
+
+  // -------------------------------------------------------------------------
+  // Geometry helpers
+  // -------------------------------------------------------------------------
+
+  function pointAt(edge, s) {
+    const clamped = Math.max(0, Math.min(edge.len, s));
+    let i = 1;
+    while (i < edge.cum.length && edge.cum[i] < clamped) i++;
+    i = Math.min(i, edge.pts.length - 1);
+
+    const p0 = edge.pts[i - 1];
+    const p1 = edge.pts[i];
+    const segStart = edge.cum[i - 1];
+    const segLen = Math.max(0.0001, edge.cum[i] - segStart);
+    const t = (clamped - segStart) / segLen;
+    const x = p0.x + (p1.x - p0.x) * t;
+    const y = p0.y + (p1.y - p0.y) * t;
+    const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    return { x, y, angle };
+  }
+
+  function outgoingVector(edge, nodeId) {
+    const eps = Math.min(12, edge.len * 0.2);
+    if (edge.a === nodeId) {
+      const p0 = pointAt(edge, 0);
+      const p1 = pointAt(edge, eps);
+      const d = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
+      return { x: (p1.x - p0.x) / d, y: (p1.y - p0.y) / d, dir: 1 };
+    }
+    const p0 = pointAt(edge, edge.len);
+    const p1 = pointAt(edge, edge.len - eps);
+    const d = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
+    return { x: (p1.x - p0.x) / d, y: (p1.y - p0.y) / d, dir: -1 };
+  }
+
+  function edgeById(id) {
+    return edges.find((edge) => edge.id === id);
+  }
+
+  const worldBounds = (() => {
+    const all = [...nodes.values()];
+    const xs = all.map((n) => n.x);
+    const ys = all.map((n) => n.y);
+    return {
+      minX: Math.min(...xs), maxX: Math.max(...xs),
+      minY: Math.min(...ys), maxY: Math.max(...ys),
+    };
+  })();
+
+  // -------------------------------------------------------------------------
+  // Game state
+  // -------------------------------------------------------------------------
+
+  let running = false;
+  let paused = false;
+  let dead = false;
+  let lastT = 0;
+  let trainCars = 1;
+  let queuedDirection = null;
+  let pickups = [];
+  let trail = [];
+  let head = null;
+  let camera = { x: 0, y: 0, scale: 0.7 };
+  let audioCtx = null;
+
+  function readBest() {
+    const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
+    return match ? Number(match[1]) : 0;
+  }
+
+  let best = readBest();
+
+  function saveBest() {
+    const joined = trainCars - 1;
+    if (joined <= best) return;
+    best = joined;
+    document.cookie = "ttcSnakeHighScore=" + best + "; Max-Age=31536000; Path=/; SameSite=Lax";
+  }
+
+  function totalTrainLength() {
+    return trainCars * CAR_LENGTH_M + Math.max(0, trainCars - 1) * COUPLER_GAP_M;
+  }
+
+  function updateHud() {
+    carsStat.textContent = String(trainCars);
+    joinedStat.textContent = String(trainCars - 1);
+    bestStat.textContent = String(best);
+    lengthStat.textContent = totalTrainLength() >= 1000
+      ? (totalTrainLength() / 1000).toFixed(2) + " km"
+      : Math.round(totalTrainLength()) + " m";
+  }
+
+  function ringBell() {
+    // A short synthetic bell keeps the game dependency-free and works offline.
+    try {
+      audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioCtx.currentTime;
+      const gain = audioCtx.createGain();
+      const o1 = audioCtx.createOscillator();
+      const o2 = audioCtx.createOscillator();
+      o1.type = "sine";
+      o2.type = "sine";
+      o1.frequency.setValueAtTime(1046.5, now);
+      o2.frequency.setValueAtTime(1568, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      o1.connect(gain);
+      o2.connect(gain);
+      gain.connect(audioCtx.destination);
+      o1.start(now);
+      o2.start(now);
+      o1.stop(now + 0.34);
+      o2.stop(now + 0.34);
+    } catch (_) {
+      // Audio is optional; gameplay should never depend on browser audio policy.
+    }
+  }
+
+  function resetGame() {
+    const startEdge = edgeById("queen1");
+    head = { edge: startEdge, s: 90, dir: 1, headingX: 1, headingY: 0 };
+    trainCars = 1;
+    queuedDirection = null;
+    dead = false;
+    paused = false;
+    trail = [];
+
+    const p = pointAt(head.edge, head.s);
+    trail.push({ x: p.x, y: p.y });
+    camera.x = p.x;
+    camera.y = p.y;
+    camera.scale = 0.7;
+
+    pickups = [];
+    for (let i = 0; i < PICKUP_COUNT; i++) pickups.push(makePickup());
+    updateHud();
+  }
+
+  function makePickup() {
+    // Prefer actual running/diversion track; yard pickups are deliberately rarer.
+    for (let attempts = 0; attempts < 100; attempts++) {
+      const edge = edges[Math.floor(Math.random() * edges.length)];
+      if (edge.len < 40) continue;
+      if (edge.tags.includes("yard") && Math.random() < 0.7) continue;
+      const margin = Math.min(35, edge.len * 0.15);
+      const s = margin + Math.random() * Math.max(1, edge.len - margin * 2);
+      const p = pointAt(edge, s);
+
+      if (head) {
+        const hp = pointAt(head.edge, head.s);
+        if (Math.hypot(p.x - hp.x, p.y - hp.y) < 500) continue;
+      }
+      if (pickups.some((other) => Math.hypot(p.x - other.x, p.y - other.y) < 250)) continue;
+      return { edge, s, x: p.x, y: p.y, angle: p.angle };
+    }
+
+    const edge = edges[Math.floor(Math.random() * edges.length)];
+    const s = edge.len * 0.5;
+    const p = pointAt(edge, s);
+    return { edge, s, x: p.x, y: p.y, angle: p.angle };
+  }
+
+  function queueDirection(dir) {
+    if (dir === "pause") {
+      togglePause();
+      return;
+    }
+    queuedDirection = dir;
+    const button = document.querySelector('[data-dir="' + dir + '"]');
+    if (button) {
+      button.classList.add("active");
+      setTimeout(() => button.classList.remove("active"), 110);
+    }
+  }
+
+  function desiredVector(dir) {
+    if (dir === "up") return { x: 0, y: -1 };
+    if (dir === "down") return { x: 0, y: 1 };
+    if (dir === "left") return { x: -1, y: 0 };
+    return { x: 1, y: 0 };
+  }
+
+  function chooseNextEdge(nodeId, currentEdge) {
+    const candidates = adjacency.get(nodeId) || [];
+    if (candidates.length === 0) return null;
+
+    if (candidates.length === 1) {
+      const only = candidates[0];
+      const out = outgoingVector(only, nodeId);
+      return { edge: only, dir: out.dir, vec: out };
+    }
+
+    const currentVec = { x: head.headingX, y: head.headingY };
+    const target = queuedDirection ? desiredVector(queuedDirection) : currentVec;
+    let bestChoice = null;
+    let bestScore = -Infinity;
+
+    for (const edge of candidates) {
+      const out = outgoingVector(edge, nodeId);
+      let score = out.x * target.x + out.y * target.y;
+
+      // Without a queued turn, favour continuing forward instead of reversing.
+      if (!queuedDirection && edge === currentEdge) score -= 1.25;
+
+      // With an explicit direction, allow U-turns but make a matching branch win.
+      if (queuedDirection && edge === currentEdge) score -= 0.15;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestChoice = { edge, dir: out.dir, vec: out };
+      }
+    }
+
+    queuedDirection = null;
+    return bestChoice;
+  }
+
+  function advanceHead(distance) {
+    let remaining = distance;
+    let guard = 0;
+
+    while (remaining > 0 && guard++ < 20) {
+      const towardEnd = head.dir > 0;
+      const available = towardEnd ? head.edge.len - head.s : head.s;
+
+      if (remaining <= available) {
+        head.s += remaining * head.dir;
+        const p = pointAt(head.edge, head.s);
+        const a = p.angle + (head.dir < 0 ? Math.PI : 0);
+        head.headingX = Math.cos(a);
+        head.headingY = Math.sin(a);
+        remaining = 0;
+        break;
+      }
+
+      head.s = towardEnd ? head.edge.len : 0;
+      remaining -= available;
+      const nodeId = towardEnd ? head.edge.b : head.edge.a;
+      const next = chooseNextEdge(nodeId, head.edge);
+      if (!next) break;
+
+      head.edge = next.edge;
+      head.dir = next.dir;
+      head.s = next.dir > 0 ? 0 : next.edge.len;
+      head.headingX = next.vec.x;
+      head.headingY = next.vec.y;
+    }
+  }
+
+  function addTrailSample() {
+    const p = pointAt(head.edge, head.s);
+    const last = trail[trail.length - 1];
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) >= 1.2) {
+      trail.push({ x: p.x, y: p.y });
+    }
+
+    // Keep enough history for the entire train plus a little margin.
+    const needed = totalTrainLength() + 180;
+    let accum = 0;
+    let keepFrom = trail.length - 1;
+    for (let i = trail.length - 1; i > 0; i--) {
+      accum += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
+      keepFrom = i - 1;
+      if (accum > needed) break;
+    }
+    if (keepFrom > 0) trail.splice(0, keepFrom);
+  }
+
+  function getTrainPoses() {
+    const targets = Array.from({ length: trainCars }, (_, i) => i * CAR_SPACING_M);
+    const poses = [];
+    let targetIndex = 0;
+    let travelled = 0;
+
+    if (trail.length === 1) {
+      return targets.map(() => ({ x: trail[0].x, y: trail[0].y, angle: 0 }));
+    }
+
+    for (let i = trail.length - 1; i > 0 && targetIndex < targets.length; i--) {
+      const newer = trail[i];
+      const older = trail[i - 1];
+      const seg = Math.hypot(newer.x - older.x, newer.y - older.y);
+      if (seg < 0.001) continue;
+
+      while (targetIndex < targets.length && targets[targetIndex] <= travelled + seg) {
+        const along = (targets[targetIndex] - travelled) / seg;
+        const x = newer.x + (older.x - newer.x) * along;
+        const y = newer.y + (older.y - newer.y) * along;
+        // Cars face toward the head, so use the older->newer direction.
+        const angle = Math.atan2(newer.y - older.y, newer.x - older.x);
+        poses.push({ x, y, angle });
+        targetIndex++;
+      }
+      travelled += seg;
+    }
+
+    // At the beginning of a run, duplicate the oldest available pose until the
+    // full train has physically entered the sampled path.
+    const oldest = poses[poses.length - 1] || trail[0];
+    while (poses.length < trainCars) {
+      poses.push({ x: oldest.x, y: oldest.y, angle: poses.at(-1)?.angle || 0 });
+    }
+    return poses;
+  }
+
+  function checkPickups() {
+    const p = pointAt(head.edge, head.s);
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const pickup = pickups[i];
+      if (Math.hypot(p.x - pickup.x, p.y - pickup.y) < 22) {
+        trainCars++;
+        pickups.splice(i, 1);
+        pickups.push(makePickup());
+        ringBell();
+        saveBest();
+        updateHud();
+        tip.textContent = trainCars >= 40
+          ? "Forty cars. Transit Control has stopped asking questions."
+          : trainCars + " cars: " + Math.round(totalTrainLength()) + " metres of extremely unofficial TTC.";
+      }
+    }
+  }
+
+  function checkSelfCollision(poses) {
+    if (trainCars < 6 || poses.length < 6) return false;
+    const headPose = poses[0];
+
+    // Skip the first few adjacent cars; their spacing is intentionally close.
+    for (let i = 5; i < poses.length; i++) {
+      if (Math.hypot(headPose.x - poses[i].x, headPose.y - poses[i].y) < 15) return true;
+    }
+    return false;
+  }
+
+  function gameOver() {
+    dead = true;
+    running = false;
+    saveBest();
+    updateHud();
+    overlay.classList.remove("hidden");
+    overlay.querySelector("h1").textContent = "Service suspended";
+    overlay.querySelector(".big").textContent = "You coupled " + (trainCars - 1) + " extra streetcars into a " + Math.round(totalTrainLength()) + " m consist.";
+    overlay.querySelectorAll("p")[1].textContent = "The head of the train met the rest of the train. This is frowned upon, even by Toronto standards.";
+    overlay.querySelectorAll("p")[2].textContent = "High score: " + best + " joined streetcars.";
+    startBtn.textContent = "Reset the switch & depart again";
+  }
+
+  function togglePause() {
+    if (!running || dead) return;
+    paused = !paused;
+    tip.textContent = paused ? "Paused — Transit Control is pretending this is scheduled recovery time." : "Back in service.";
+  }
+
+  // -------------------------------------------------------------------------
+  // Camera + drawing
+  // -------------------------------------------------------------------------
+
+  function worldToScreen(x, y) {
+    return {
+      x: (x - camera.x) * camera.scale + W / 2,
+      y: (y - camera.y) * camera.scale + H / 2,
+    };
+  }
+
+  function updateCamera(poses) {
+    const headPose = poses[0];
+    const tailPose = poses[poses.length - 1] || headPose;
+    const targetX = headPose.x * 0.64 + tailPose.x * 0.36;
+    const targetY = headPose.y * 0.64 + tailPose.y * 0.36;
+    const desiredViewWidth = Math.max(1050, totalTrainLength() * 1.42);
+    const mobileBoost = W < 600 ? 1.18 : 1;
+    const targetScale = Math.max(0.20, Math.min(1.05, W / (desiredViewWidth * mobileBoost)));
+
+    camera.x += (targetX - camera.x) * 0.08;
+    camera.y += (targetY - camera.y) * 0.08;
+    camera.scale += (targetScale - camera.scale) * 0.06;
+  }
+
+  function drawWater() {
+    // Approximate shoreline only; this is decorative geographic context.
+    const shoreGeo = [
+      [43.595, -79.550], [43.637, -79.493], [43.632, -79.445],
+      [43.633, -79.420], [43.635, -79.400], [43.639, -79.382],
+      [43.645, -79.360], [43.652, -79.330], [43.660, -79.300],
+      [43.665, -79.275],
+    ];
+    const shore = shoreGeo.map(([lat, lon]) => project(lat, lon));
+    ctx.beginPath();
+    const first = worldToScreen(shore[0].x, shore[0].y);
+    ctx.moveTo(first.x, first.y);
+    for (const p of shore.slice(1)) {
+      const s = worldToScreen(p.x, p.y);
+      ctx.lineTo(s.x, s.y);
+    }
+    ctx.lineTo(W + 200, H + 200);
+    ctx.lineTo(-200, H + 200);
+    ctx.closePath();
+    ctx.fillStyle = "#bed8e5";
+    ctx.fill();
+  }
+
+  function drawEdge(edge) {
+    const pts = edge.pts.map((p) => worldToScreen(p.x, p.y));
+    if (!pts.length) return;
+
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y);
+    const yard = edge.tags.includes("yard");
+    const diversion = edge.tags.includes("diversion") || edge.tags.includes("track");
+    ctx.strokeStyle = yard ? "#6d6a64" : diversion ? "#74746f" : "#3d4044";
+    ctx.lineWidth = yard ? 4 : 5;
+    ctx.globalAlpha = yard ? 0.72 : diversion ? 0.70 : 0.90;
+    ctx.stroke();
+
+    // A light centre line reads as paired rail at game scale without clutter.
+    ctx.strokeStyle = yard ? "#c5c0b6" : "#d7d3ca";
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = 0.82;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  function drawNode(node) {
+    if (!['loop', 'station', 'carhouse'].includes(node.type)) return;
+    const p = worldToScreen(node.x, node.y);
+    if (p.x < -60 || p.x > W + 60 || p.y < -60 || p.y > H + 60) return;
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.lineWidth = 1.5;
+
+    if (node.type === "loop") {
+      ctx.strokeStyle = "#c51d24";
+      ctx.fillStyle = "#fffaf1";
+      ctx.beginPath();
+      ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    } else if (node.type === "station") {
+      ctx.fillStyle = "#111317";
+      ctx.fillRect(-4.5, -4.5, 9, 9);
+    } else {
+      ctx.fillStyle = "#d71920";
+      ctx.beginPath();
+      ctx.moveTo(0, -7);
+      ctx.lineTo(7, 6);
+      ctx.lineTo(-7, 6);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    if (camera.scale > 0.34) {
+      ctx.font = "600 10px system-ui, sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(20,22,25,.78)";
+      ctx.fillText(node.label, 9, -9);
+    }
+    ctx.restore();
+  }
+
+  function drawStreetcar(pose, index, pickup = false) {
+    const p = worldToScreen(pose.x, pose.y);
+    if (p.x < -100 || p.x > W + 100 || p.y < -100 || p.y > H + 100) return;
+
+    const lengthPx = Math.max(5, CAR_LENGTH_M * camera.scale);
+    const widthPx = Math.max(3.4, CAR_WIDTH_M * camera.scale);
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(pose.angle);
+
+    if (pickup) {
+      ctx.shadowColor = "rgba(215,25,32,.9)";
+      ctx.shadowBlur = 15;
+    }
+
+    ctx.fillStyle = index === 0 && !pickup ? "#b40f15" : "#d71920";
+    ctx.strokeStyle = "#fbfbf8";
+    ctx.lineWidth = Math.min(1.5, Math.max(.7, camera.scale));
+    ctx.fillRect(-lengthPx / 2, -widthPx / 2, lengthPx, widthPx);
+    ctx.strokeRect(-lengthPx / 2, -widthPx / 2, lengthPx, widthPx);
+
+    // Articulation joints make long trains read as modern Flexitys.
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(30,30,30,.82)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-lengthPx * .18, -widthPx / 2);
+    ctx.lineTo(-lengthPx * .18, widthPx / 2);
+    ctx.moveTo(lengthPx * .18, -widthPx / 2);
+    ctx.lineTo(lengthPx * .18, widthPx / 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f4f4f1";
+    ctx.fillRect(lengthPx * .34, -widthPx / 2, Math.max(1.2, lengthPx * .08), widthPx);
+    ctx.restore();
+  }
+
+  function drawPickups() {
+    for (const pickup of pickups) {
+      const pulse = 1 + Math.sin(performance.now() / 180 + pickup.x * .001) * .12;
+      const p = worldToScreen(pickup.x, pickup.y);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 11 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.74)";
+      ctx.fill();
+      drawStreetcar(pickup, -1, true);
+    }
+  }
+
+  function drawMinimap(poses) {
+    mctx.clearRect(0, 0, mW, mH);
+    mctx.fillStyle = "rgba(248,246,239,.96)";
+    mctx.fillRect(0, 0, mW, mH);
+
+    const pad = 10;
+    const spanX = worldBounds.maxX - worldBounds.minX;
+    const spanY = worldBounds.maxY - worldBounds.minY;
+    const scale = Math.min((mW - pad * 2) / spanX, (mH - pad * 2) / spanY);
+    const ox = pad + ((mW - pad * 2) - spanX * scale) / 2;
+    const oy = pad + ((mH - pad * 2) - spanY * scale) / 2;
+    const mp = (x, y) => ({ x: ox + (x - worldBounds.minX) * scale, y: oy + (y - worldBounds.minY) * scale });
+
+    mctx.lineJoin = "round";
+    mctx.lineCap = "round";
+    for (const edge of edges) {
+      const pts = edge.pts.map((p) => mp(p.x, p.y));
+      mctx.beginPath();
+      mctx.moveTo(pts[0].x, pts[0].y);
+      for (const p of pts.slice(1)) mctx.lineTo(p.x, p.y);
+      mctx.strokeStyle = edge.tags.includes("yard") ? "#9a9790" : "#4d5054";
+      mctx.globalAlpha = edge.tags.includes("yard") ? .55 : .72;
+      mctx.lineWidth = edge.tags.includes("yard") ? 1 : 1.3;
+      mctx.stroke();
+    }
+    mctx.globalAlpha = 1;
+
+    for (const pickup of pickups) {
+      const p = mp(pickup.x, pickup.y);
+      mctx.fillStyle = "#d71920";
+      mctx.beginPath();
+      mctx.arc(p.x, p.y, 2.1, 0, Math.PI * 2);
+      mctx.fill();
+    }
+
+    if (poses.length) {
+      const tail = mp(poses.at(-1).x, poses.at(-1).y);
+      const hp = mp(poses[0].x, poses[0].y);
+      mctx.strokeStyle = "rgba(215,25,32,.50)";
+      mctx.lineWidth = 2.5;
+      mctx.beginPath();
+      mctx.moveTo(tail.x, tail.y);
+      mctx.lineTo(hp.x, hp.y);
+      mctx.stroke();
+      mctx.fillStyle = "#0d0f12";
+      mctx.beginPath();
+      mctx.arc(hp.x, hp.y, 3.2, 0, Math.PI * 2);
+      mctx.fill();
+    }
+  }
+
+  function drawFrame(poses) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#f1eee5";
+    ctx.fillRect(0, 0, W, H);
+    drawWater();
+
+    for (const edge of edges) drawEdge(edge);
+    for (const node of nodes.values()) drawNode(node);
+    drawPickups();
+
+    // Draw tail first so the lead car remains visually dominant.
+    for (let i = poses.length - 1; i >= 0; i--) drawStreetcar(poses[i], i, false);
+
+    drawMinimap(poses);
+  }
+
+  // -------------------------------------------------------------------------
+  // Main loop
+  // -------------------------------------------------------------------------
+
+  function frame(t) {
+    if (!lastT) lastT = t;
+    const dt = Math.min(0.05, (t - lastT) / 1000);
+    lastT = t;
+
+    if (running && !paused && !dead) {
+      const speed = Math.min(MAX_SPEED_MPS, 10.5 + (trainCars - 1) * 0.17);
+      advanceHead(speed * dt);
+      addTrailSample();
+      checkPickups();
+    }
+
+    const poses = getTrainPoses();
+    if (running && !paused && !dead && checkSelfCollision(poses)) gameOver();
+    updateCamera(poses);
+    drawFrame(poses);
+    requestAnimationFrame(frame);
+  }
+
+  // -------------------------------------------------------------------------
+  // Input
+  // -------------------------------------------------------------------------
+
+  addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    const map = {
+      arrowup: "up", w: "up",
+      arrowdown: "down", s: "down",
+      arrowleft: "left", a: "left",
+      arrowright: "right", d: "right",
+    };
+    if (map[key]) {
+      event.preventDefault();
+      queueDirection(map[key]);
+    } else if (key === " " || key === "p") {
+      event.preventDefault();
+      togglePause();
+    }
+  }, { passive: false });
+
+  document.querySelectorAll(".control").forEach((button) => {
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      queueDirection(button.dataset.dir);
+    });
+  });
+
+  let swipeStart = null;
+  canvas.addEventListener("pointerdown", (event) => {
+    swipeStart = { x: event.clientX, y: event.clientY };
+  });
+  canvas.addEventListener("pointerup", (event) => {
+    if (!swipeStart) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.hypot(dx, dy) < 24) return;
+    if (Math.abs(dx) > Math.abs(dy)) queueDirection(dx > 0 ? "right" : "left");
+    else queueDirection(dy > 0 ? "down" : "up");
+  });
+
+  startBtn.addEventListener("click", () => {
+    resetGame();
+    overlay.classList.add("hidden");
+    running = true;
+    lastT = performance.now();
+    ringBell();
+  });
+
+  aboutBtn.addEventListener("click", () => {
+    aboutPanel.classList.toggle("open");
+  });
+
+  // Start with a visible world before the user presses Depart.
+  resetGame();
+  updateHud();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
