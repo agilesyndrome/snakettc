@@ -540,7 +540,7 @@
     <a href="https://www.ttc.ca/en/transparency-and-accountability/Operating-Statistics/operating-statistics---2017/next-generation-streetcars" target="_blank" rel="noreferrer">TTC Flexity vehicle specifications</a><br>
     <a href="https://www.ttc.ca/news/2015/November/TTCs-new-streetcar-facility-to-enter-service-this-Sunday" target="_blank" rel="noreferrer">TTC Leslie Barns / carhouse background</a>
   </p>
-  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 999 km/h. At that point Transit Control has no jurisdiction over your soul.</p>
+  <p><strong>Speed:</strong> Arcade is the default game feel: 90 km/h departure speed with a 120 km/h cap. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 2000 km/h. At that point Transit Control has no jurisdiction over your soul.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
 
@@ -550,7 +550,7 @@
     <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
     <p>Collect glowing Flexitys. Your first one is dispatched onto the track ahead so the run gets moving immediately; later cars spread across the network. Every pickup adds another full 30.20 m streetcar to your train.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
-    <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 999 km/h because apparently the rails are merely a suggestion.</p>
+    <p><strong>Arcade</strong> is the default and deliberately quick. <strong>Realistic</strong> keeps the 50 km/h game governor. <strong>Airplane Mode</strong> goes to 2000 km/h because apparently Toronto has an aviation corridor now.</p>
     <p>On touch devices: brake/accelerate at the bottom, then use the contextual <strong>LEFT / STRAIGHT / RIGHT</strong> switch buttons when special work approaches.</p>
     <div class="mode-picker">
       <div class="mode-field">
@@ -565,7 +565,7 @@
         <select id="operatorModeSelect">
           <option value="arcade" selected>Arcade — fast &amp; fun (120 km/h cap)</option>
           <option value="realistic">Realistic / Purist — 50 km/h cap</option>
-          <option value="rogue">Airplane Mode — 999 km/h, good luck</option>
+          <option value="rogue">Airplane Mode — 2000 km/h, absolutely unwell</option>
         </select>
       </div>
     </div>
@@ -592,7 +592,7 @@
   const REALISTIC_GOVERNOR_KPH = 50;
   const ARCADE_GOVERNOR_KPH = 120;
   const FLEXITY_RATED_MAX_KPH = 70;
-  const ROGUE_GAME_MAX_KPH = 999; // Airplane Mode: gloriously fictional.
+  const ROGUE_GAME_MAX_KPH = 2000; // Airplane Mode: geography is now optional.
   const MODE_START_SPEED_KPH = {
     realistic: 50,
     arcade: 90,
@@ -918,20 +918,47 @@
     { route: "512", name: "ST CLAIR", a: "gunns", b: "stClairYonge", aEdge: "stclair1", bEdge: "stclair3" },
   ];
 
-  const MAP_LABELS = [
-    ["ST CLAIR AVE W", 43.6817, -79.4410, 0],
-    ["COLLEGE / CARLTON / GERRARD", 43.6607, -79.3900, 0],
-    ["DUNDAS ST", 43.6550, -79.4140, 0],
-    ["QUEEN ST", 43.6530, -79.3900, 0],
-    ["KING ST", 43.6465, -79.3900, 0],
-    ["QUEENS QUAY", 43.6384, -79.3890, 0],
-    ["RONCESVALLES AVE", 43.6455, -79.4487, -Math.PI / 2],
-    ["BATHURST ST", 43.6565, -79.4075, -Math.PI / 2],
-    ["SPADINA AVE", 43.6530, -79.3970, -Math.PI / 2],
-    ["BROADVIEW AVE", 43.6670, -79.3565, -Math.PI / 2],
-    ["LESLIE ST", 43.6603, -79.3310, -Math.PI / 2],
-    ["LAKE ONTARIO", 43.6230, -79.3900, 0],
-  ].map(([label, lat, lon, angle]) => ({ label, ...project(lat, lon), angle }));
+  const ROAD_MARKERS = [
+    // East-west corridors.
+    ["ST CLAIR AVE W", 43.6802, -79.4460, 0, 1],
+    ["ST CLAIR AVE W", 43.6851, -79.4080, 0, 2],
+    ["COLLEGE ST", 43.6569, -79.4110, 0, 1],
+    ["CARLTON ST", 43.6621, -79.3810, 0, 1],
+    ["GERRARD ST E", 43.6687, -79.3430, 0, 1],
+    ["DUNDAS ST W", 43.6526, -79.4220, 0, 1],
+    ["DUNDAS ST W", 43.6554, -79.3890, 0, 2],
+    ["QUEEN ST W", 43.6465, -79.4140, 0, 1],
+    ["QUEEN ST W", 43.6506, -79.3870, 0, 2],
+    ["QUEEN ST E", 43.6590, -79.3480, 0, 1],
+    ["KING ST W", 43.6422, -79.4140, 0, 1],
+    ["KING ST W", 43.6462, -79.3870, 0, 2],
+    ["KING ST E", 43.6522, -79.3620, 0, 1],
+    ["QUEENS QUAY W", 43.6382, -79.3950, 0, 1],
+    ["LAKE SHORE BLVD W", 43.6070, -79.5160, 0, 1],
+    ["THE QUEENSWAY", 43.6385, -79.4720, 0, 1],
+    ["KINGSTON RD", 43.6750, -79.2990, 0, 1],
+
+    // North-south corridors.
+    ["RONCESVALLES AVE", 43.6450, -79.4485, -Math.PI / 2, 1],
+    ["DUFFERIN ST", 43.6392, -79.4270, -Math.PI / 2, 2],
+    ["BATHURST ST", 43.6570, -79.4085, -Math.PI / 2, 1],
+    ["SPADINA AVE", 43.6510, -79.3970, -Math.PI / 2, 1],
+    ["YORK ST", 43.6485, -79.3837, -Math.PI / 2, 2],
+    ["CHURCH ST", 43.6540, -79.3748, -Math.PI / 2, 2],
+    ["PARLIAMENT ST", 43.6570, -79.3660, -Math.PI / 2, 2],
+    ["BROADVIEW AVE", 43.6665, -79.3560, -Math.PI / 2, 1],
+    ["COXWELL AVE", 43.6692, -79.3175, -Math.PI / 2, 2],
+    ["LESLIE ST", 43.6598, -79.3310, -Math.PI / 2, 1],
+  ].map(([label, lat, lon, angle, priority]) => ({
+    label,
+    ...project(lat, lon),
+    angle,
+    priority,
+  }));
+
+  const WATER_LABELS = [
+    ["LAKE ONTARIO", 43.6230, -79.3900],
+  ].map(([label, lat, lon]) => ({ label, ...project(lat, lon) }));
 
   // -------------------------------------------------------------------------
   // Geometry helpers
@@ -1939,27 +1966,70 @@
     targetCtx.globalAlpha = 1;
   }
 
+  function roundedRectPath(targetCtx, x, y, w, h, r) {
+    const radius = Math.min(r, w / 2, h / 2);
+    targetCtx.beginPath();
+    targetCtx.moveTo(x + radius, y);
+    targetCtx.lineTo(x + w - radius, y);
+    targetCtx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    targetCtx.lineTo(x + w, y + h - radius);
+    targetCtx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    targetCtx.lineTo(x + radius, y + h);
+    targetCtx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    targetCtx.lineTo(x, y + radius);
+    targetCtx.quadraticCurveTo(x, y, x + radius, y);
+    targetCtx.closePath();
+  }
+
   function drawGeographyLabels() {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    for (const item of MAP_LABELS) {
+    const mobile = W < 600;
+    const minimumScale = mobile ? 0.36 : 0.28;
+    const showSecondary = camera.scale > (mobile ? 0.53 : 0.42);
+
+    if (camera.scale >= minimumScale) {
+      for (const item of ROAD_MARKERS) {
+        if (item.priority > 1 && !showSecondary) continue;
+
+        const p = worldToScreen(item.x, item.y);
+        if (p.x < -100 || p.x > W + 100 || p.y < -60 || p.y > H + 60) continue;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(item.angle || 0);
+
+        const fontSize = mobile ? 7.5 : 8.5;
+        ctx.font = "800 " + fontSize + "px system-ui, sans-serif";
+        const textWidth = ctx.measureText(item.label).width;
+        const padX = mobile ? 4 : 5;
+        const boxW = textWidth + padX * 2;
+        const boxH = mobile ? 14 : 16;
+
+        // Small Google/Apple-map-ish street-name plaque.
+        roundedRectPath(ctx, -boxW / 2, -boxH / 2, boxW, boxH, 4);
+        ctx.fillStyle = "rgba(255,255,252,.90)";
+        ctx.fill();
+        ctx.strokeStyle = "rgba(83,88,92,.34)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(46,50,54,.92)";
+        ctx.fillText(item.label, 0, 0.5);
+        ctx.restore();
+      }
+    }
+
+    for (const item of WATER_LABELS) {
       const p = worldToScreen(item.x, item.y);
       if (p.x < -140 || p.x > W + 140 || p.y < -80 || p.y > H + 80) continue;
-
-      const lake = item.label === "LAKE ONTARIO";
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(item.angle || 0);
-      ctx.font = lake ? "italic 800 13px system-ui, sans-serif" : "800 10px system-ui, sans-serif";
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = lake ? "rgba(190,216,229,.96)" : "rgba(241,238,229,.92)";
-      ctx.fillStyle = lake ? "rgba(46,95,122,.72)" : "rgba(72,76,80,.62)";
-      ctx.strokeText(item.label, 0, 0);
-      ctx.fillText(item.label, 0, 0);
-      ctx.restore();
+      ctx.font = "italic 800 12px system-ui, sans-serif";
+      ctx.fillStyle = "rgba(46,95,122,.68)";
+      ctx.fillText(item.label, p.x, p.y);
     }
+
     ctx.restore();
   }
 
@@ -2266,7 +2336,13 @@
     // Arcade keeps the "slow order" idea without reducing a game to walking pace.
     const effective = chaos?.type === "slow" ? Math.min(speedKph, slowOrderCapKph()) : speedKph;
     speedStat.textContent = String(Math.round(effective));
-    speedStat.style.color = effective >= 500 ? "#ffd43b" : effective > FLEXITY_RATED_MAX_KPH ? "#ffb3b7" : "";
+    speedStat.style.color = effective >= 1000
+      ? "#74c0fc"
+      : effective >= 500
+        ? "#ffd43b"
+        : effective > FLEXITY_RATED_MAX_KPH
+          ? "#ffb3b7"
+          : "";
     return effective;
   }
 
