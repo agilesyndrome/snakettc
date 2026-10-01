@@ -12,7 +12,7 @@ Choose **Free Play** or **Route Missions** before departing.
 - **Keyboard steering:** Arrow keys or WASD.
 - **Manual switch control:** Q = left turnout, E = right turnout, R = straight. An approaching-junction panel also lets you throw the switch directly.
 - **Mobile:** on-screen direction pad or swipe to steer; tap the turnout choices when a switch is approaching.
-- **Driving feel:** Arcade is the default, starting at 90 km/h with a 120 km/h game cap. Realistic / Purist starts at and is governed to 50 km/h. Airplane Mode starts at 180 km/h and permits intentionally fictional overdrive up to 2000 km/h.
+- **Driving feel:** Arcade is the default, starting at 180 km/h and permitting intentionally fictional overdrive up to 2000 km/h. Realistic / Purist starts at and is governed to 50 km/h.
 - **Speed controls:** hold the on-screen accelerator/brake pedals, or use `+` and `-`. The real Flexity rating of 70 km/h remains the realism boundary shown in the HUD.
 - **Mobile cockpit:** phones use a compact three-stat HUD, small labeled minimap, one-line location display, smaller D-pad, and thumb-friendly brake/accelerator controls instead of the desktop stack.
 - **Pause:** Space, P, or the centre touch button.
