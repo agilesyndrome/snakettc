@@ -123,3 +123,12 @@ Two false-death paths were corrected: placeholder tail cars created when a consi
 - Tiny diamond markers show stop locations on the map; the upcoming stop is highlighted.
 - Stop choice follows the actual track path ahead, not a selected route schedule. Throwing a switch immediately recalculates the next stop on the newly selected track.
 - Kingston Road / Bingham physical stops are included even while current 503 service is temporarily bus-replaced.
+
+
+### Terminal turnback audit and Ossington diversion
+
+- All modeled loops, terminal stations, carhouse/shop spurs, and graph dead ends use protected same-edge turnback geometry when a run reverses direction.
+- Union has a larger synthetic loop radius, with larger station turnbacks generally and distance-based collision grace long enough for a full Flexity to clear the modeled loop.
+- Multi-branch terminals such as Humber, Exhibition and Dufferin Gate are protected too; mission reversals no longer depend on a node being degree 1.
+- Non-revenue streetcar track on Ossington Avenue between Dundas Street West and College Street is included as playable diversion track.
+- Legacy resume cookies using the pre-split Dundas/College edge IDs are migrated to the new graph.
