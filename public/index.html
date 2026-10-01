@@ -743,7 +743,7 @@
   </p>
   <p><strong>Speed:</strong> Arcade is the default: 180 km/h departure speed with intentionally fictional overdrive up to 2000 km/h. Realistic / Purist is governed to 50 km/h. The real Flexity vehicle is rated to a 70 km/h maximum.</p>
   <p><strong>Stops:</strong> the HUD follows geographic streetcar stop locations rather than a selected route schedule. Stops are snapped onto this simplified rail model, so throwing a switch immediately changes the upcoming stop. Tiny diamonds mark stop locations; you absolutely do not have to stop.</p>
-  <p><strong>Track model:</strong> each mapped street corridor now renders directional virtual rails a few metres apart. Simplified degree-1 endpoints behave like terminal loops, so turning back does not make the outbound car occupy the same rail as its inbound tail.</p>
+  <p><strong>Track model:</strong> each mapped street corridor renders directional virtual rails a few metres apart. Every degree-1 endpoint is a protected terminal turnback; Union gets a larger synthetic loop so a long consist cannot die merely by reaching the platform. Ossington's College↔Dundas diversion track is playable even though it has no regular route.</p>
   <p><strong>Touch:</strong> pinch the game map to zoom the camera. Safari page zoom is suppressed during play so the brake and accelerator stay where your thumbs left them.</p>
   <p><strong>Rule:</strong> collect parked streetcars, avoid biting your own train, and try not to explain a forty-car consist to Transit Control.</p>
 </div>
@@ -990,6 +990,7 @@
   // Roncesvalles + Dundas.
   N("roncyDundas", "Dundas / Roncesvalles", 43.6518, -79.4496);
   N("dundasWest", "Dundas West Station", 43.6566, -79.4523, "station");
+  N("dundasOssington", "Dundas / Ossington", 43.64935, -79.42072);
   N("dundasBathurst", "Dundas / Bathurst", 43.6517, -79.4062);
   N("dundasSpadina", "Dundas / Spadina", 43.6532, -79.3980);
   N("dundasYonge", "Dundas / Yonge", 43.6561, -79.3802);
@@ -999,8 +1000,11 @@
 
   E("roncySouth", "roncyHub", "roncyDundas", ["504"], [[43.6450, -79.4480]]);
   E("roncyNorth", "roncyDundas", "dundasWest", ["504", "505"]);
-  E("dundas1", "dundasWest", "dundasBathurst", ["505"], [
-    [43.6540, -79.4440], [43.6515, -79.4300], [43.6508, -79.4160],
+  E("dundas1w", "dundasWest", "dundasOssington", ["505"], [
+    [43.6540, -79.4440], [43.6515, -79.4300],
+  ]);
+  E("dundas1e", "dundasOssington", "dundasBathurst", ["505"], [
+    [43.6508, -79.4160],
   ]);
   E("dundas2", "dundasBathurst", "dundasSpadina", ["505"]);
   E("dundas3", "dundasSpadina", "dundasYonge", ["505"]);
@@ -1010,6 +1014,7 @@
 
   // College / Carlton / Gerrard + Main Street.
   N("highPark", "High Park Loop", 43.6542, -79.4560, "loop");
+  N("collegeOssington", "College / Ossington", 43.65436, -79.42275);
   N("collegeBathurst", "College / Bathurst", 43.6564, -79.4072);
   N("collegeSpadina", "College / Spadina", 43.6577, -79.3992);
   N("collegeYonge", "College / Yonge", 43.6617, -79.3832);
@@ -1021,9 +1026,17 @@
   N("mainStation", "Main Street Station", 43.6891, -79.3010, "station");
 
   E("highParkConn", "highPark", "roncyDundas", ["506"], [[43.6530, -79.4540]]);
-  E("collegeWest", "roncyDundas", "collegeBathurst", ["506"], [
-    [43.6540, -79.4400], [43.6550, -79.4250], [43.6560, -79.4140],
+  E("collegeWestW", "roncyDundas", "collegeOssington", ["506"], [
+    [43.6540, -79.4400],
   ]);
+  E("collegeWestE", "collegeOssington", "collegeBathurst", ["506"], [
+    [43.6560, -79.4140],
+  ]);
+
+  // Ossington Avenue retains streetcar track between College and Dundas.
+  // It carries no regular route here, but TTC still uses it for diversions.
+  E("ossingtonDiversion", "dundasOssington", "collegeOssington", ["track", "diversion"]);
+
   E("college1", "collegeBathurst", "collegeSpadina", ["506"]);
   E("college2", "collegeSpadina", "collegeYonge", ["506"]);
   E("carlton", "collegeYonge", "carltonChurch", ["506"]);
@@ -1133,6 +1146,13 @@
   E("leslieTrack", "queenLeslie", "leslieLakeShore", ["yard"]);
   E("leslieYard", "leslieLakeShore", "leslieBarns", ["yard"]);
 
+  // Derived terminal audit. Every degree-1 endpoint is handled by the protected
+  // turnback geometry above, so future dead-end additions cannot silently
+  // reintroduce a same-track U-turn death.
+  const TURNBACK_ENDPOINTS = [...nodes.values()]
+    .filter((node) => (adjacency.get(node.id) || []).length === 1)
+    .map((node) => node.id);
+
   // Route missions use current TTC terminal pairs, while the track geometry
   // remains deliberately simplified for playability.
   const MISSION_DEFS = [
@@ -1170,6 +1190,7 @@
     // North-south corridors.
     ["RONCESVALLES AVE", 43.6450, -79.4485, -Math.PI / 2, 1],
     ["DUFFERIN ST", 43.6392, -79.4270, -Math.PI / 2, 2],
+    ["OSSINGTON AVE", 43.6520, -79.4217, -Math.PI / 2, 2],
     ["BATHURST ST", 43.6570, -79.4085, -Math.PI / 2, 1],
     ["SPADINA AVE", 43.6510, -79.3970, -Math.PI / 2, 1],
     ["YORK ST", 43.6485, -79.3837, -Math.PI / 2, 2],
@@ -2339,10 +2360,27 @@
     trail.push({ x, y, d: trailDistance });
   }
 
+  const TERMINAL_LOOP_RADIUS_M = {
+    union: 18,
+    spadinaStation: 15,
+    mainStation: 15,
+    broadviewStation: 15,
+    stClairYonge: 15,
+  };
+
+  function terminalTurnbackRadius(nodeId) {
+    const node = nodes.get(nodeId);
+    if (TERMINAL_LOOP_RADIUS_M[nodeId]) return TERMINAL_LOOP_RADIUS_M[nodeId];
+    if (node?.type === "station") return 14;
+    if (node?.type === "loop") return 12;
+    if (node?.type === "carhouse") return 10;
+    return 10;
+  }
+
   function addTerminalTurnaround(nodeId, edge, incomingDir, outgoingDir) {
-    // Degree-1 nodes are simplified terminal loops in this map. Connect the
-    // inbound virtual rail to the outbound rail with a small semicircular loop
-    // instead of teleporting across the corridor or retracing the same rail.
+    // Every degree-1 endpoint is treated as a physical turnback/loop rather than
+    // a literal U-turn on one centreline. Union gets extra room because its
+    // simplified tunnel loop is especially easy for a long consist to overlap.
     const incident = adjacency.get(nodeId) || [];
     if (incident.length !== 1 || edge !== incident[0] || incomingDir === outgoingDir) return;
 
@@ -2350,9 +2388,6 @@
     const inbound = lanePointAt(edge, incomingDir > 0 ? edge.len : 0, incomingDir);
     const outbound = lanePointAt(edge, outgoingDir > 0 ? 0 : edge.len, outgoingDir);
 
-    // The two lane points sit on opposite sides of the centreline. Sweep a
-    // half-circle around the terminal node; 8 samples are enough to keep the
-    // long-train geometry smooth without pretending this is survey-grade track.
     let a0 = Math.atan2(inbound.y - node.y, inbound.x - node.x);
     let a1 = Math.atan2(outbound.y - node.y, outbound.x - node.x);
     let delta = a1 - a0;
@@ -2360,16 +2395,19 @@
     while (delta > Math.PI) delta -= Math.PI * 2;
     if (Math.abs(delta) < Math.PI * 0.75) delta = delta >= 0 ? Math.PI : -Math.PI;
 
-    const radius = Math.max(TRACK_LANE_OFFSET_M, Math.hypot(inbound.x - node.x, inbound.y - node.y));
-    for (let i = 1; i <= 8; i++) {
-      const a = a0 + delta * (i / 8);
+    const radius = Math.max(
+      terminalTurnbackRadius(nodeId),
+      TRACK_LANE_OFFSET_M,
+      Math.hypot(inbound.x - node.x, inbound.y - node.y)
+    );
+
+    const steps = Math.max(12, Math.ceil(Math.PI * radius / 2.5));
+    for (let i = 1; i <= steps; i++) {
+      const a = a0 + delta * (i / steps);
       appendTrailPoint(node.x + Math.cos(a) * radius, node.y + Math.sin(a) * radius);
     }
 
-    // A full-size 30 m car geometrically sweeps across the simplified loop even
-    // though a real terminal uses dedicated loop/return track. Ignore only that
-    // unavoidable model artifact, and only until the lead car has cleared it.
-    terminalCollisionGraceM = Math.max(terminalCollisionGraceM, CAR_LENGTH_M * 2.2);
+    terminalCollisionGraceM = Math.max(terminalCollisionGraceM, CAR_LENGTH_M * 3.5);
   }
 
   function advanceHead(distance) {
