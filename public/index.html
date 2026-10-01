@@ -1146,11 +1146,13 @@
   E("leslieTrack", "queenLeslie", "leslieLakeShore", ["yard"]);
   E("leslieYard", "leslieLakeShore", "leslieBarns", ["yard"]);
 
-  // Derived terminal audit. Every degree-1 endpoint is handled by the protected
-  // turnback geometry above, so future dead-end additions cannot silently
-  // reintroduce a same-track U-turn death.
-  const TURNBACK_ENDPOINTS = [...nodes.values()]
-    .filter((node) => (adjacency.get(node.id) || []).length === 1)
+  // Derived terminal audit. All explicit loops/stations/carhouses plus every
+  // degree-1 endpoint are eligible for protected same-edge reversals.
+  const TURNBACK_TERMINALS = [...nodes.values()]
+    .filter((node) =>
+      ["loop", "station", "carhouse"].includes(node.type) ||
+      (adjacency.get(node.id) || []).length === 1
+    )
     .map((node) => node.id);
 
   // Route missions use current TTC terminal pairs, while the track geometry
@@ -1397,9 +1399,17 @@
       const checkpoint = JSON.parse(raw);
       if (!checkpoint || checkpoint.v !== 1 ||
           !Number.isFinite(checkpoint.c) || checkpoint.c < 2 ||
-          !checkpoint.e || !edgeById(checkpoint.e)) {
+          !checkpoint.e) {
         return null;
       }
+
+      // Map pre-Ossington graph checkpoints onto the nearest replacement edge.
+      // Exact position is approximate, but keeping the run is better than
+      // invalidating tomorrow's resume because the rail graph gained a junction.
+      if (checkpoint.e === "dundas1") checkpoint.e = "dundas1w";
+      if (checkpoint.e === "collegeWest") checkpoint.e = "collegeWestW";
+
+      if (!edgeById(checkpoint.e)) return null;
       return checkpoint;
     } catch (_) {
       return null;
@@ -2378,13 +2388,14 @@
   }
 
   function addTerminalTurnaround(nodeId, edge, incomingDir, outgoingDir) {
-    // Every degree-1 endpoint is treated as a physical turnback/loop rather than
-    // a literal U-turn on one centreline. Union gets extra room because its
-    // simplified tunnel loop is especially easy for a long consist to overlap.
+    // A same-edge reversal at any terminal-like node is treated as a physical
+    // loop/turnback rather than a literal U-turn on one centreline. This matters
+    // at multi-branch terminals such as Humber, Exhibition and Dufferin Gate as
+    // well as degree-1 terminals such as Union.
     const incident = adjacency.get(nodeId) || [];
-    if (incident.length !== 1 || edge !== incident[0] || incomingDir === outgoingDir) return;
-
     const node = nodes.get(nodeId);
+    const terminalLike = node && ["loop", "station", "carhouse"].includes(node.type);
+    if ((!terminalLike && incident.length !== 1) || !incident.includes(edge) || incomingDir === outgoingDir) return;
     const inbound = lanePointAt(edge, incomingDir > 0 ? edge.len : 0, incomingDir);
     const outbound = lanePointAt(edge, outgoingDir > 0 ? 0 : edge.len, outgoingDir);
 
