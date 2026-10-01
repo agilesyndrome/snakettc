@@ -210,6 +210,97 @@
     cursor: pointer;
   }
 
+  .mode-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .card .mode-btn {
+    margin-top: 0;
+    border: 1px solid rgba(255,255,255,.16);
+    background: #292d33;
+    color: #d7dbe1;
+    font-size: 12px;
+    letter-spacing: .04em;
+  }
+  .card .mode-btn.selected {
+    background: var(--ttc-red);
+    color: white;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.16);
+  }
+
+  #missionHud {
+    grid-column: 1 / -1;
+    display: none;
+    max-width: min(660px, calc(100vw - 24px));
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: rgba(12,14,17,.90);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 6px 20px rgba(0,0,0,.22);
+  }
+  #missionHud.show { display: flex; align-items: center; gap: 10px; }
+  #missionRoute {
+    min-width: 58px;
+    padding: 4px 7px;
+    border-radius: 6px;
+    background: var(--ttc-red);
+    color: #fff;
+    text-align: center;
+    font: 900 15px/1 system-ui, sans-serif;
+  }
+  #missionText { min-width: 0; }
+  #missionText b { display: block; font-size: 12px; }
+  #missionText span { display: block; margin-top: 2px; color: #bfc5cc; font-size: 10px; }
+
+  #switchPanel {
+    position: fixed;
+    z-index: 9;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(390px, calc(100vw - 220px));
+    padding: 9px;
+    border-radius: 14px;
+    background: rgba(12,14,17,.90);
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 7px 24px rgba(0,0,0,.26);
+  }
+  #switchPanel[hidden] { display: none; }
+  #switchTitle { font-size: 10px; color: #c8ccd2; text-transform: uppercase; letter-spacing: .08em; }
+  #switchMeta { margin-top: 2px; font-size: 11px; font-weight: 800; color: #fff; }
+  #switchChoices { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; margin-top: 7px; }
+  .switch-choice {
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 9px;
+    padding: 8px 5px;
+    background: #2a2e34;
+    color: white;
+    font: 800 10px/1 system-ui, sans-serif;
+    touch-action: manipulation;
+  }
+  .switch-choice.selected { background: #087f5b; }
+  .switch-choice.blocked { opacity: .45; text-decoration: line-through; }
+
+  #eventBanner {
+    position: fixed;
+    z-index: 10;
+    left: 50%;
+    top: max(12px, env(safe-area-inset-top));
+    transform: translateX(-50%);
+    max-width: min(520px, calc(100vw - 28px));
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(129,76,0,.94);
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow: 0 6px 20px rgba(0,0,0,.23);
+    color: white;
+    font: 800 11px/1.2 system-ui, sans-serif;
+    text-align: center;
+  }
+  #eventBanner[hidden] { display: none; }
+
   @media (max-width: 760px) {
     .hud { grid-template-columns: repeat(4, minmax(64px, 1fr)); right: 12px; }
     .brand { min-height: 66px; padding-right: 195px; }
@@ -218,6 +309,7 @@
     .stat b { font-size: 16px; }
     #minimap { width: 175px; height: 110px; }
     #dpad { transform: scale(.92); transform-origin: bottom right; }
+    #switchPanel { width: min(330px, calc(100vw - 190px)); }
   }
 
   @media (max-width: 540px) {
@@ -229,6 +321,14 @@
     .brand small { max-width: none; }
     .tip { display: none; }
     #dpad { transform: scale(.86); }
+    #switchPanel {
+      left: 10px;
+      right: 10px;
+      bottom: 190px;
+      width: auto;
+      transform: none;
+    }
+    #eventBanner { top: 232px; }
   }
 </style>
 </head>
@@ -246,7 +346,19 @@
   <div class="stat"><b id="joinedStat">0</b><span>joined</span></div>
   <div class="stat"><b id="bestStat">0</b><span>high score</span></div>
   <div class="stat"><b id="lengthStat">30 m</b><span>train length</span></div>
-  <div class="tip" id="tip">Arrow keys / WASD steer at the next switch. On touch: use the pad or swipe. Space or P pauses.</div>
+  <div class="tip" id="tip">Arrow keys / WASD steer. At a switch use Q / E / R or the turnout panel for left / right / straight. Space or P pauses.</div>
+  <div id="missionHud" aria-live="polite">
+    <div id="missionRoute">501</div>
+    <div id="missionText"><b>Route mission</b><span>Destination</span></div>
+  </div>
+</div>
+
+<div id="eventBanner" hidden aria-live="polite"></div>
+
+<div id="switchPanel" hidden aria-label="Upcoming track switch">
+  <div id="switchTitle">Upcoming switch</div>
+  <div id="switchMeta">Approaching junction</div>
+  <div id="switchChoices"></div>
 </div>
 
 <div id="dpad" aria-label="Touch controls">
@@ -278,6 +390,10 @@
     <p class="big">You are the operator. The Toronto streetcar network is your snake board.</p>
     <p>Collect glowing Flexitys. Every pickup adds another full 30.20 m streetcar to your train. Queue a direction before the next switch and the consist follows the rails.</p>
     <p>Loops and carhouses are fair game. Running into your own train is not.</p>
+    <div class="mode-picker" role="group" aria-label="Game mode">
+      <button class="mode-btn selected" data-mode="free">Free Play</button>
+      <button class="mode-btn" data-mode="mission">Route Missions</button>
+    </div>
     <button id="startBtn">Ring bell &amp; depart</button>
   </div>
 </div>
@@ -317,6 +433,14 @@
   const startBtn = document.getElementById("startBtn");
   const aboutBtn = document.getElementById("aboutBtn");
   const aboutPanel = document.getElementById("aboutPanel");
+  const missionHud = document.getElementById("missionHud");
+  const missionRoute = document.getElementById("missionRoute");
+  const missionText = document.getElementById("missionText");
+  const switchPanel = document.getElementById("switchPanel");
+  const switchMeta = document.getElementById("switchMeta");
+  const switchChoices = document.getElementById("switchChoices");
+  const eventBanner = document.getElementById("eventBanner");
+  const modeButtons = [...document.querySelectorAll(".mode-btn")];
 
   let dpr = 1;
   let W = 0;
@@ -587,6 +711,20 @@
   E("leslieTrack", "queenLeslie", "leslieLakeShore", ["yard"]);
   E("leslieYard", "leslieLakeShore", "leslieBarns", ["yard"]);
 
+  // Route missions use current TTC terminal pairs, while the track geometry
+  // remains deliberately simplified for playability.
+  const MISSION_DEFS = [
+    { route: "501", name: "QUEEN", a: "humber", b: "neville", aEdge: "queensway", bEdge: "queen12" },
+    { route: "504A", name: "KING", a: "dundasWest", b: "distillery", aEdge: "roncyNorth", bEdge: "cherry" },
+    { route: "504B", name: "KING", a: "dufferinGate", b: "broadviewStation", aEdge: "dufferinSouth", bEdge: "broadviewNorth" },
+    { route: "505", name: "DUNDAS", a: "dundasWest", b: "broadviewStation", aEdge: "roncyNorth", bEdge: "broadviewNorth" },
+    { route: "506", name: "CARLTON", a: "highPark", b: "mainStation", aEdge: "highParkConn", bEdge: "mainTrack" },
+    { route: "509", name: "HARBOURFRONT", a: "exhibition", b: "union", aEdge: "qqWest", bEdge: "bayTunnel" },
+    { route: "510A", name: "SPADINA", a: "spadinaStation", b: "union", aEdge: "spadina1", bEdge: "bayTunnel" },
+    { route: "511", name: "BATHURST", a: "bathurstStation", b: "exhibition", aEdge: "bathurstCollege", bEdge: "fleetWest" },
+    { route: "512", name: "ST CLAIR", a: "gunns", b: "stClairYonge", aEdge: "stclair1", bEdge: "stclair3" },
+  ];
+
   // -------------------------------------------------------------------------
   // Geometry helpers
   // -------------------------------------------------------------------------
@@ -636,6 +774,24 @@
     };
   })();
 
+  // Cache the static network as three world-space Path2D objects. Camera
+  // transforms can move/scale them cheaply without rebuilding dozens of paths
+  // or allocating screen-coordinate arrays every animation frame.
+  const networkPaths = {
+    main: new Path2D(),
+    diversion: new Path2D(),
+    yard: new Path2D(),
+  };
+  for (const edge of edges) {
+    const path = edge.tags.includes("yard")
+      ? networkPaths.yard
+      : (edge.tags.includes("diversion") || edge.tags.includes("track"))
+        ? networkPaths.diversion
+        : networkPaths.main;
+    path.moveTo(edge.pts[0].x, edge.pts[0].y);
+    for (let i = 1; i < edge.pts.length; i++) path.lineTo(edge.pts[i].x, edge.pts[i].y);
+  }
+
   // -------------------------------------------------------------------------
   // Game state
   // -------------------------------------------------------------------------
@@ -646,11 +802,22 @@
   let lastT = 0;
   let trainCars = 1;
   let queuedDirection = null;
+  let manualSwitchEdgeId = null;
+  let switchSignature = "";
   let pickups = [];
   let trail = [];
+  let trailStart = 0;
+  let trailDistance = 0;
   let head = null;
   let camera = { x: 0, y: 0, scale: 0.7 };
   let audioCtx = null;
+  let selectedMode = "free";
+  let gameMode = "free";
+  let currentMission = null;
+  let missionsCompleted = 0;
+  let chaos = null;
+  let blockedEdgeId = null;
+  let nextChaosAt = Infinity;
 
   function readBest() {
     const match = document.cookie.match(/(?:^|; )ttcSnakeHighScore=(\d+)/);
@@ -677,6 +844,35 @@
     lengthStat.textContent = totalTrainLength() >= 1000
       ? (totalTrainLength() / 1000).toFixed(2) + " km"
       : Math.round(totalTrainLength()) + " m";
+    updateMissionHud();
+  }
+
+  function buildMission(def, reverse = false) {
+    const originNode = reverse ? def.b : def.a;
+    const targetNode = reverse ? def.a : def.b;
+    const startEdge = reverse ? def.bEdge : def.aEdge;
+    return { def, reverse, originNode, targetNode, startEdge };
+  }
+
+  function updateMissionHud() {
+    if (gameMode !== "mission" || !currentMission) {
+      missionHud.classList.remove("show");
+      return;
+    }
+    missionHud.classList.add("show");
+    missionRoute.textContent = currentMission.def.route;
+    missionText.innerHTML = "<b>" + currentMission.def.name + " → " +
+      nodes.get(currentMission.targetNode).label + "</b><span>" +
+      missionsCompleted + " terminal" + (missionsCompleted === 1 ? "" : "s") +
+      " completed • arrival adds one bonus car</span>";
+  }
+
+  function placeHeadFromNode(nodeId, edgeId) {
+    const edge = edgeById(edgeId);
+    const out = outgoingVector(edge, nodeId);
+    const inset = Math.min(10, Math.max(2, edge.len * 0.08));
+    const s = out.dir > 0 ? inset : edge.len - inset;
+    return { edge, s, dir: out.dir, headingX: out.x, headingY: out.y };
   }
 
   function ringBell() {
@@ -707,23 +903,46 @@
   }
 
   function resetGame() {
-    const startEdge = edgeById("queen1");
-    head = { edge: startEdge, s: 90, dir: 1, headingX: 1, headingY: 0 };
     trainCars = 1;
     queuedDirection = null;
+    manualSwitchEdgeId = null;
+    switchSignature = "";
     dead = false;
     paused = false;
     trail = [];
+    trailStart = 0;
+    trailDistance = 0;
+    missionsCompleted = 0;
+    gameMode = selectedMode;
+    currentMission = null;
+
+    if (gameMode === "mission") {
+      const def = MISSION_DEFS[Math.floor(Math.random() * MISSION_DEFS.length)];
+      currentMission = buildMission(def, Math.random() < 0.5);
+      head = placeHeadFromNode(currentMission.originNode, currentMission.startEdge);
+      tip.textContent = currentMission.def.route + " " + currentMission.def.name +
+        ": take it to " + nodes.get(currentMission.targetNode).label + ".";
+    } else {
+      const startEdge = edgeById("queen1");
+      head = { edge: startEdge, s: 90, dir: 1, headingX: 1, headingY: 0 };
+      tip.textContent = "Free Play — the entire network is yours. Collect Flexitys and mind your own tail.";
+    }
 
     const p = pointAt(head.edge, head.s);
-    trail.push({ x: p.x, y: p.y });
+    trail.push({ x: p.x, y: p.y, d: 0 });
     camera.x = p.x;
     camera.y = p.y;
     camera.scale = 0.7;
 
+    chaos = null;
+    blockedEdgeId = null;
+    eventBanner.hidden = true;
+    nextChaosAt = performance.now() + 26000 + Math.random() * 22000;
+
     pickups = [];
     for (let i = 0; i < PICKUP_COUNT; i++) pickups.push(makePickup());
     updateHud();
+    updateSwitchPanel(true);
   }
 
   function makePickup() {
@@ -756,6 +975,7 @@
       return;
     }
     queuedDirection = dir;
+    manualSwitchEdgeId = null;
     const button = document.querySelector('[data-dir="' + dir + '"]');
     if (button) {
       button.classList.add("active");
@@ -771,8 +991,21 @@
   }
 
   function chooseNextEdge(nodeId, currentEdge) {
-    const candidates = adjacency.get(nodeId) || [];
+    let candidates = adjacency.get(nodeId) || [];
     if (candidates.length === 0) return null;
+
+    const openCandidates = candidates.filter((edge) => edge.id !== blockedEdgeId);
+    if (openCandidates.length) candidates = openCandidates;
+
+    if (manualSwitchEdgeId) {
+      const manual = candidates.find((edge) => edge.id === manualSwitchEdgeId);
+      manualSwitchEdgeId = null;
+      queuedDirection = null;
+      if (manual) {
+        const out = outgoingVector(manual, nodeId);
+        return { edge: manual, dir: out.dir, vec: out };
+      }
+    }
 
     if (candidates.length === 1) {
       const only = candidates[0];
@@ -805,6 +1038,79 @@
     return bestChoice;
   }
 
+  function getUpcomingSwitch() {
+    if (!head) return null;
+    const towardEnd = head.dir > 0;
+    const distance = towardEnd ? head.edge.len - head.s : head.s;
+    if (distance > 230) return null;
+
+    const nodeId = towardEnd ? head.edge.b : head.edge.a;
+    let candidates = (adjacency.get(nodeId) || []).filter((edge) => edge !== head.edge);
+    if (candidates.length < 2) return null;
+
+    const currentVec = { x: head.headingX, y: head.headingY };
+    const branches = candidates.map((edge) => {
+      const out = outgoingVector(edge, nodeId);
+      const cross = currentVec.x * out.y - currentVec.y * out.x;
+      const dot = currentVec.x * out.x + currentVec.y * out.y;
+      const angle = Math.atan2(cross, dot);
+      const abs = Math.abs(angle);
+      const label = abs < 0.42 ? "STRAIGHT" : (angle > 0 ? "RIGHT" : "LEFT");
+      return { edge, out, angle, label, blocked: edge.id === blockedEdgeId };
+    }).sort((a, b) => a.angle - b.angle);
+
+    return { nodeId, distance, branches };
+  }
+
+  function selectSwitchBranch(edgeId) {
+    const state = getUpcomingSwitch();
+    if (!state) return;
+    const branch = state.branches.find((item) => item.edge.id === edgeId && !item.blocked);
+    if (!branch) return;
+    manualSwitchEdgeId = edgeId;
+    queuedDirection = null;
+    updateSwitchPanel(true);
+  }
+
+  function selectSwitchByIntent(intent) {
+    const state = getUpcomingSwitch();
+    if (!state) return;
+    const open = state.branches.filter((b) => !b.blocked);
+    if (!open.length) return;
+
+    let choice;
+    if (intent === "left") choice = open.reduce((a, b) => a.angle < b.angle ? a : b);
+    else if (intent === "right") choice = open.reduce((a, b) => a.angle > b.angle ? a : b);
+    else choice = open.reduce((a, b) => Math.abs(a.angle) < Math.abs(b.angle) ? a : b);
+
+    selectSwitchBranch(choice.edge.id);
+  }
+
+  function updateSwitchPanel(force = false) {
+    const state = getUpcomingSwitch();
+    if (!state) {
+      switchPanel.hidden = true;
+      switchSignature = "";
+      return;
+    }
+
+    const signature = state.nodeId + "|" + Math.round(state.distance / 10) + "|" +
+      state.branches.map((b) => b.edge.id + ":" + (b.blocked ? "x" : "")).join(",") +
+      "|" + (manualSwitchEdgeId || "");
+    if (!force && signature === switchSignature) return;
+    switchSignature = signature;
+
+    switchPanel.hidden = false;
+    switchMeta.textContent = nodes.get(state.nodeId).label + " • " + Math.round(state.distance) + " m";
+    switchChoices.innerHTML = state.branches.map((b) =>
+      '<button class="switch-choice' +
+      (manualSwitchEdgeId === b.edge.id ? " selected" : "") +
+      (b.blocked ? " blocked" : "") +
+      '" data-edge="' + b.edge.id + '"' + (b.blocked ? " disabled" : "") + '>' +
+      b.label + '</button>'
+    ).join("");
+  }
+
   function advanceHead(distance) {
     let remaining = distance;
     let guard = 0;
@@ -826,6 +1132,7 @@
       head.s = towardEnd ? head.edge.len : 0;
       remaining -= available;
       const nodeId = towardEnd ? head.edge.b : head.edge.a;
+      handleNodeArrival(nodeId);
       const next = chooseNextEdge(nodeId, head.edge);
       if (!next) break;
 
@@ -840,56 +1147,60 @@
   function addTrailSample() {
     const p = pointAt(head.edge, head.s);
     const last = trail[trail.length - 1];
-    if (!last || Math.hypot(p.x - last.x, p.y - last.y) >= 1.2) {
-      trail.push({ x: p.x, y: p.y });
+    if (!last) {
+      trail.push({ x: p.x, y: p.y, d: trailDistance });
+      return;
     }
 
-    // Keep enough history for the entire train plus a little margin.
-    const needed = totalTrainLength() + 180;
-    let accum = 0;
-    let keepFrom = trail.length - 1;
-    for (let i = trail.length - 1; i > 0; i--) {
-      accum += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
-      keepFrom = i - 1;
-      if (accum > needed) break;
+    const seg = Math.hypot(p.x - last.x, p.y - last.y);
+    if (seg >= 1.2) {
+      trailDistance += seg;
+      trail.push({ x: p.x, y: p.y, d: trailDistance });
     }
-    if (keepFrom > 0) trail.splice(0, keepFrom);
+
+    // Advance a logical start index rather than shifting the array every frame.
+    const cutoff = trailDistance - (totalTrainLength() + 180);
+    while (trailStart < trail.length - 2 && trail[trailStart + 1].d < cutoff) trailStart++;
+
+    // Compact only occasionally, amortizing the cost over hundreds of samples.
+    if (trailStart > 600) {
+      trail = trail.slice(trailStart);
+      trailStart = 0;
+    }
   }
 
   function getTrainPoses() {
-    const targets = Array.from({ length: trainCars }, (_, i) => i * CAR_SPACING_M);
+    if (!trail.length) return [];
+    if (trail.length - trailStart === 1) {
+      return Array.from({ length: trainCars }, () => ({
+        x: trail[trailStart].x, y: trail[trailStart].y, angle: 0,
+      }));
+    }
+
     const poses = [];
-    let targetIndex = 0;
-    let travelled = 0;
+    let cursor = trail.length - 1;
 
-    if (trail.length === 1) {
-      return targets.map(() => ({ x: trail[0].x, y: trail[0].y, angle: 0 }));
-    }
+    for (let car = 0; car < trainCars; car++) {
+      const wanted = trailDistance - car * CAR_SPACING_M;
 
-    for (let i = trail.length - 1; i > 0 && targetIndex < targets.length; i--) {
-      const newer = trail[i];
-      const older = trail[i - 1];
-      const seg = Math.hypot(newer.x - older.x, newer.y - older.y);
-      if (seg < 0.001) continue;
-
-      while (targetIndex < targets.length && targets[targetIndex] <= travelled + seg) {
-        const along = (targets[targetIndex] - travelled) / seg;
-        const x = newer.x + (older.x - newer.x) * along;
-        const y = newer.y + (older.y - newer.y) * along;
-        // Cars face toward the head, so use the older->newer direction.
-        const angle = Math.atan2(newer.y - older.y, newer.x - older.x);
-        poses.push({ x, y, angle });
-        targetIndex++;
+      if (wanted <= trail[trailStart].d) {
+        const oldest = trail[trailStart];
+        poses.push({ x: oldest.x, y: oldest.y, angle: poses.at(-1)?.angle || 0 });
+        continue;
       }
-      travelled += seg;
+
+      while (cursor > trailStart + 1 && trail[cursor - 1].d > wanted) cursor--;
+      const newer = trail[cursor];
+      const older = trail[cursor - 1];
+      const span = Math.max(0.0001, newer.d - older.d);
+      const t = Math.max(0, Math.min(1, (wanted - older.d) / span));
+      poses.push({
+        x: older.x + (newer.x - older.x) * t,
+        y: older.y + (newer.y - older.y) * t,
+        angle: Math.atan2(newer.y - older.y, newer.x - older.x),
+      });
     }
 
-    // At the beginning of a run, duplicate the oldest available pose until the
-    // full train has physically entered the sampled path.
-    const oldest = poses[poses.length - 1] || trail[0];
-    while (poses.length < trainCars) {
-      poses.push({ x: oldest.x, y: oldest.y, angle: poses.at(-1)?.angle || 0 });
-    }
     return poses;
   }
 
@@ -911,20 +1222,117 @@
     }
   }
 
+  function handleNodeArrival(nodeId) {
+    if (gameMode !== "mission" || !currentMission || nodeId !== currentMission.targetNode) return;
+
+    missionsCompleted++;
+    trainCars++;
+    ringBell();
+    saveBest();
+
+    currentMission = buildMission(currentMission.def, !currentMission.reverse);
+    // At compressed terminal loops, prime the correct departure leg so the
+    // turnaround behaves like a route reversal instead of choosing a random spur.
+    manualSwitchEdgeId = currentMission.startEdge;
+
+    tip.textContent = "Terminal reached. Bonus car coupled. Now " +
+      currentMission.def.route + " back to " + nodes.get(currentMission.targetNode).label + ".";
+    updateHud();
+  }
+
+  function pointSegmentDistance(px, py, ax, ay, bx, by) {
+    const vx = bx - ax;
+    const vy = by - ay;
+    const denom = vx * vx + vy * vy || 1;
+    const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / denom));
+    return Math.hypot(px - (ax + vx * t), py - (ay + vy * t));
+  }
+
+  function orient(ax, ay, bx, by, cx, cy) {
+    return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+  }
+
+  function segmentsIntersect(a, b, c, d) {
+    const o1 = orient(a.x, a.y, b.x, b.y, c.x, c.y);
+    const o2 = orient(a.x, a.y, b.x, b.y, d.x, d.y);
+    const o3 = orient(c.x, c.y, d.x, d.y, a.x, a.y);
+    const o4 = orient(c.x, c.y, d.x, d.y, b.x, b.y);
+    return o1 * o2 < 0 && o3 * o4 < 0;
+  }
+
+  function capsuleAxis(pose) {
+    const half = CAR_LENGTH_M * 0.42;
+    const dx = Math.cos(pose.angle) * half;
+    const dy = Math.sin(pose.angle) * half;
+    return {
+      a: { x: pose.x - dx, y: pose.y - dy },
+      b: { x: pose.x + dx, y: pose.y + dy },
+    };
+  }
+
+  function segmentDistance(s1, s2) {
+    if (segmentsIntersect(s1.a, s1.b, s2.a, s2.b)) return 0;
+    return Math.min(
+      pointSegmentDistance(s1.a.x, s1.a.y, s2.a.x, s2.a.y, s2.b.x, s2.b.y),
+      pointSegmentDistance(s1.b.x, s1.b.y, s2.a.x, s2.a.y, s2.b.x, s2.b.y),
+      pointSegmentDistance(s2.a.x, s2.a.y, s1.a.x, s1.a.y, s1.b.x, s1.b.y),
+      pointSegmentDistance(s2.b.x, s2.b.y, s1.a.x, s1.a.y, s1.b.x, s1.b.y)
+    );
+  }
+
   function checkSelfCollision(poses) {
     if (trainCars < 6 || poses.length < 6) return false;
-    const headPose = poses[0];
+    const lead = capsuleAxis(poses[0]);
 
-    // Skip the first few adjacent cars; their spacing is intentionally close.
+    // Each car is treated as a narrow capsule, much closer to the real Flexity
+    // footprint than the old centre-point collision radius.
     for (let i = 5; i < poses.length; i++) {
-      if (Math.hypot(headPose.x - poses[i].x, headPose.y - poses[i].y) < 15) return true;
+      if (segmentDistance(lead, capsuleAxis(poses[i])) < 3.4) return true;
     }
     return false;
+  }
+
+  function startChaos(t) {
+    if (!running || dead) return;
+    const choices = ["slow", "block"];
+    const type = choices[Math.floor(Math.random() * choices.length)];
+
+    if (type === "slow") {
+      chaos = { type, until: t + 16000 };
+      eventBanner.textContent = "TRANSIT CONTROL: slow order — 25 km/h for 16 seconds.";
+    } else {
+      const options = edges.filter((edge) =>
+        edge !== head.edge && !edge.tags.includes("yard") && edge.len > 120
+      );
+      const edge = options[Math.floor(Math.random() * options.length)];
+      if (!edge) return;
+      blockedEdgeId = edge.id;
+      chaos = { type, until: t + 19000, edgeId: edge.id };
+      eventBanner.textContent = "SERVICE ADVISORY: stalled streetcar blocks " +
+        nodes.get(edge.a).label + " ↔ " + nodes.get(edge.b).label + ". Divert!";
+    }
+
+    eventBanner.hidden = false;
+  }
+
+  function updateChaos(t) {
+    if (chaos && t >= chaos.until) {
+      chaos = null;
+      blockedEdgeId = null;
+      eventBanner.hidden = true;
+      nextChaosAt = t + 30000 + Math.random() * 26000;
+      updateSwitchPanel(true);
+    } else if (!chaos && t >= nextChaosAt) {
+      startChaos(t);
+    }
   }
 
   function gameOver() {
     dead = true;
     running = false;
+    chaos = null;
+    blockedEdgeId = null;
+    eventBanner.hidden = true;
     saveBest();
     updateHud();
     overlay.classList.remove("hidden");
@@ -989,28 +1397,30 @@
     ctx.fill();
   }
 
-  function drawEdge(edge) {
-    const pts = edge.pts.map((p) => worldToScreen(p.x, p.y));
-    if (!pts.length) return;
+  function drawNetwork(targetCtx = ctx, scale = camera.scale, tx = W / 2 - camera.x * camera.scale, ty = H / 2 - camera.y * camera.scale) {
+    targetCtx.save();
+    targetCtx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * tx, dpr * ty);
+    targetCtx.lineJoin = "round";
+    targetCtx.lineCap = "round";
 
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y);
-    const yard = edge.tags.includes("yard");
-    const diversion = edge.tags.includes("diversion") || edge.tags.includes("track");
-    ctx.strokeStyle = yard ? "#6d6a64" : diversion ? "#74746f" : "#3d4044";
-    ctx.lineWidth = yard ? 4 : 5;
-    ctx.globalAlpha = yard ? 0.72 : diversion ? 0.70 : 0.90;
-    ctx.stroke();
+    const specs = [
+      [networkPaths.main, "#3d4044", "#d7d3ca", 5, .90],
+      [networkPaths.diversion, "#74746f", "#d7d3ca", 5, .70],
+      [networkPaths.yard, "#6d6a64", "#c5c0b6", 4, .72],
+    ];
 
-    // A light centre line reads as paired rail at game scale without clutter.
-    ctx.strokeStyle = yard ? "#c5c0b6" : "#d7d3ca";
-    ctx.lineWidth = 1.2;
-    ctx.globalAlpha = 0.82;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    for (const [path, outer, inner, width, alpha] of specs) {
+      targetCtx.globalAlpha = alpha;
+      targetCtx.strokeStyle = outer;
+      targetCtx.lineWidth = width / scale;
+      targetCtx.stroke(path);
+      targetCtx.globalAlpha = .82;
+      targetCtx.strokeStyle = inner;
+      targetCtx.lineWidth = 1.2 / scale;
+      targetCtx.stroke(path);
+    }
+    targetCtx.restore();
+    targetCtx.globalAlpha = 1;
   }
 
   function drawNode(node) {
@@ -1087,6 +1497,20 @@
 
     ctx.fillStyle = "#f4f4f1";
     ctx.fillRect(lengthPx * .34, -widthPx / 2, Math.max(1.2, lengthPx * .08), widthPx);
+
+    if (index === 0 && !pickup && currentMission && lengthPx > 18) {
+      ctx.save();
+      ctx.translate(lengthPx * .20, 0);
+      ctx.rotate(-pose.angle);
+      ctx.fillStyle = "#111";
+      ctx.fillRect(-9, -6, 18, 12);
+      ctx.fillStyle = "#ffb000";
+      ctx.font = "900 7px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(currentMission.def.route, 0, 0);
+      ctx.restore();
+    }
     ctx.restore();
   }
 
@@ -1115,18 +1539,22 @@
     const oy = pad + ((mH - pad * 2) - spanY * scale) / 2;
     const mp = (x, y) => ({ x: ox + (x - worldBounds.minX) * scale, y: oy + (y - worldBounds.minY) * scale });
 
+    mctx.save();
+    mctx.setTransform(dpr * scale, 0, 0, dpr * scale,
+      dpr * (ox - worldBounds.minX * scale),
+      dpr * (oy - worldBounds.minY * scale));
     mctx.lineJoin = "round";
     mctx.lineCap = "round";
-    for (const edge of edges) {
-      const pts = edge.pts.map((p) => mp(p.x, p.y));
-      mctx.beginPath();
-      mctx.moveTo(pts[0].x, pts[0].y);
-      for (const p of pts.slice(1)) mctx.lineTo(p.x, p.y);
-      mctx.strokeStyle = edge.tags.includes("yard") ? "#9a9790" : "#4d5054";
-      mctx.globalAlpha = edge.tags.includes("yard") ? .55 : .72;
-      mctx.lineWidth = edge.tags.includes("yard") ? 1 : 1.3;
-      mctx.stroke();
-    }
+    mctx.strokeStyle = "#4d5054";
+    mctx.globalAlpha = .72;
+    mctx.lineWidth = 1.3 / scale;
+    mctx.stroke(networkPaths.main);
+    mctx.stroke(networkPaths.diversion);
+    mctx.strokeStyle = "#9a9790";
+    mctx.globalAlpha = .55;
+    mctx.lineWidth = 1 / scale;
+    mctx.stroke(networkPaths.yard);
+    mctx.restore();
     mctx.globalAlpha = 1;
 
     for (const pickup of pickups) {
@@ -1153,14 +1581,62 @@
     }
   }
 
+  function drawSwitchPreview() {
+    const state = getUpcomingSwitch();
+    if (!state) return;
+    const node = nodes.get(state.nodeId);
+    const p = worldToScreen(node.x, node.y);
+
+    ctx.save();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#f4a300";
+    ctx.fillStyle = "rgba(244,163,0,.18)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    const selected = state.branches.find((b) => b.edge.id === manualSwitchEdgeId);
+    if (selected) {
+      const q = worldToScreen(node.x + selected.out.x * 85, node.y + selected.out.y * 85);
+      ctx.strokeStyle = "#087f5b";
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(q.x, q.y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawBlockedEdge() {
+    if (!blockedEdgeId) return;
+    const edge = edgeById(blockedEdgeId);
+    if (!edge) return;
+    const mid = pointAt(edge, edge.len * .5);
+    const p = worldToScreen(mid.x, mid.y);
+    ctx.save();
+    ctx.strokeStyle = "#d97706";
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(p.x - 10, p.y - 10);
+    ctx.lineTo(p.x + 10, p.y + 10);
+    ctx.moveTo(p.x + 10, p.y - 10);
+    ctx.lineTo(p.x - 10, p.y + 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawFrame(poses) {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#f1eee5";
     ctx.fillRect(0, 0, W, H);
     drawWater();
 
-    for (const edge of edges) drawEdge(edge);
+    drawNetwork();
     for (const node of nodes.values()) drawNode(node);
+    drawBlockedEdge();
+    drawSwitchPreview();
     drawPickups();
 
     // Draw tail first so the lead car remains visually dominant.
@@ -1179,10 +1655,13 @@
     lastT = t;
 
     if (running && !paused && !dead) {
-      const speed = Math.min(MAX_SPEED_MPS, 10.5 + (trainCars - 1) * 0.17);
+      updateChaos(t);
+      const normalSpeed = Math.min(MAX_SPEED_MPS, 10.5 + (trainCars - 1) * 0.17);
+      const speed = chaos?.type === "slow" ? Math.min(normalSpeed, 7.0) : normalSpeed;
       advanceHead(speed * dt);
       addTrailSample();
       checkPickups();
+      updateSwitchPanel();
     }
 
     const poses = getTrainPoses();
@@ -1207,11 +1686,27 @@
     if (map[key]) {
       event.preventDefault();
       queueDirection(map[key]);
+    } else if (key === "q") {
+      event.preventDefault();
+      selectSwitchByIntent("left");
+    } else if (key === "e") {
+      event.preventDefault();
+      selectSwitchByIntent("right");
+    } else if (key === "r") {
+      event.preventDefault();
+      selectSwitchByIntent("straight");
     } else if (key === " " || key === "p") {
       event.preventDefault();
       togglePause();
     }
   }, { passive: false });
+
+  switchChoices.addEventListener("pointerdown", (event) => {
+    const button = event.target.closest(".switch-choice");
+    if (!button || button.disabled) return;
+    event.preventDefault();
+    selectSwitchBranch(button.dataset.edge);
+  });
 
   document.querySelectorAll(".control").forEach((button) => {
     button.addEventListener("pointerdown", (event) => {
@@ -1232,6 +1727,13 @@
     if (Math.hypot(dx, dy) < 24) return;
     if (Math.abs(dx) > Math.abs(dy)) queueDirection(dx > 0 ? "right" : "left");
     else queueDirection(dy > 0 ? "down" : "up");
+  });
+
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedMode = button.dataset.mode;
+      modeButtons.forEach((b) => b.classList.toggle("selected", b === button));
+    });
   });
 
   startBtn.addEventListener("click", () => {
