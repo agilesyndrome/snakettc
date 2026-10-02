@@ -9,13 +9,12 @@ Choose **Free Play** or **Route Missions** before departing.
 - **Free Play:** the whole track network is open; collect streetcars and build the longest consist you can.
 - **Route Missions:** operate a real TTC route/terminal pair. Reaching the destination couples one bonus car and flips the sign for the return trip.
 - **Random starts:** every departure starts at a different point on the playable network; Route Missions randomize onto track used by the selected route.
-- **Keyboard steering:** Arrow keys or WASD.
-- **Manual switch control:** Q = left turnout, E = right turnout, R = straight. An approaching-junction panel also lets you throw the switch directly.
+- **Keyboard controls:** hold ↑ to accelerate, hold ↓ to brake, and use ← / → / Space for left / right / straight at switches. An approaching-junction panel also lets you throw the switch directly.
 - **Mobile:** on-screen direction pad or swipe to steer; tap the turnout choices when a switch is approaching.
 - **Driving feel:** Arcade is the default, starting at 180 km/h and permitting intentionally fictional overdrive up to 2000 km/h. Realistic / Purist starts at and is governed to 50 km/h.
 - **Speed controls:** hold the on-screen accelerator/brake pedals, or use `+` and `-`. The real Flexity rating of 70 km/h remains the realism boundary shown in the HUD.
 - **Mobile cockpit:** phones use a compact three-stat HUD, small labeled minimap, one-line location display, smaller D-pad, and thumb-friendly brake/accelerator controls instead of the desktop stack.
-- **Pause:** Space, P, or the centre touch button.
+- **Pause:** P or the centre touch button.
 - **High score:** stored in a first-party cookie as the number of streetcars joined.
 - **Transit Control events:** occasional slow orders or stalled cars temporarily alter the run and may force a diversion.
 
@@ -34,6 +33,12 @@ The mission roster reflects TTC terminal pairs in the 2026 service information u
 ### Performance notes
 
 Static track geometry is cached as reusable world-space canvas paths instead of rebuilt every frame. Train history uses a rolling distance-indexed buffer, and self-collision uses streetcar-shaped capsules rather than centre-point circles. The follow camera uses a much tighter view on phones so track motion is visually legible at game speeds instead of looking artificially slow. Cloudflare serves static assets directly; the Worker is invoked first only for `/healthz`.
+
+### Code layout
+
+- `public/index.html` contains the semantic UI shell and stable element IDs.
+- `public/styles.css` contains all layout, component, and responsive styling.
+- `public/game.js` contains the network model, simulation, rendering, input, audio, and persistence. Its section headers follow the runtime flow from world data through the main loop.
 
 ## Run locally
 
